@@ -1,16 +1,19 @@
-use bilge::prelude::*;
+use num_enum::TryFromPrimitive;
 
-pub const WIDTH: usize = 80;
-pub const HEIGHT: usize = 25;
+pub const BUFFER_WIDTH: usize = 80;
+pub const BUFFER_HEIGHT: usize = 25;
+const VGA_BUFFER_PTR: *mut VgaChar = 0xb8000 as _;
 
-static mut VGA_BUFFER: *mut [[VgaChar; WIDTH]; HEIGHT] = 0xb8000 as _;
+pub static VGA_BUFFER: VgaBuffer = VgaBuffer { _private: () };
 
-#[bitsize(16, hide_value, new=pub)]
-#[derive(FromBits, Clone, Copy)]
+#[derive(Clone, Copy)]
+#[repr(C)]
 pub struct VgaChar {
-    pub code_point: u8,
+    pub char: u8,
     pub color: VgaTextColor,
 }
+
+const _: () = assert!(core::mem::size_of::<VgaChar>() == 2);
 
 #[derive(Clone, Copy)]
 pub struct VgaPos {
@@ -18,21 +21,43 @@ pub struct VgaPos {
     pub y: u8,
 }
 
-#[bitsize(8, hide_value, new=pub)]
-#[derive(FromBits, Clone, Copy)]
-pub struct VgaTextColor {
-    pub fg_color: VgaColor,
-    pub bg_color: VgaColor,
+#[derive(Clone, Copy)]
+#[repr(transparent)]
+pub struct VgaTextColor(u8);
+
+impl VgaTextColor {
+    pub fn new(fg_color: VgaColor, bg_color: VgaColor) -> Self {
+        Self((bg_color as u8) << 4 | (fg_color as u8))
+    }
+
+    pub fn fg_color(self) -> VgaColor {
+        VgaColor::try_from_primitive(self.0 & 0xf).unwrap()
+    }
+
+    pub fn bg_color(self) -> VgaColor {
+        VgaColor::try_from_primitive(self.0 >> 4).unwrap()
+    }
 }
 
-pub fn put_char(char: VgaChar, pos: VgaPos) {
-    let cell = unsafe { &mut (*VGA_BUFFER)[pos.y as usize][pos.x as usize] };
-
-    *cell = char;
+pub struct VgaBuffer {
+    _private: (),
 }
 
-#[bitsize(4)]
-#[derive(FromBits, Clone, Copy)]
+impl VgaBuffer {
+    pub fn write(&self, char: VgaChar, pos: VgaPos) {
+        assert!(pos.x < BUFFER_WIDTH as u8);
+        assert!(pos.y < BUFFER_HEIGHT as u8);
+
+        let offset = (pos.y as usize * BUFFER_WIDTH) + pos.x as usize;
+        unsafe {
+            let cell = VGA_BUFFER_PTR.add(offset);
+            cell.write_volatile(char);
+        }
+    }
+}
+
+#[derive(Clone, Copy, TryFromPrimitive)]
+#[repr(u8)]
 pub enum VgaColor {
     Black = 0,
     Blue,
@@ -41,13 +66,13 @@ pub enum VgaColor {
     Red,
     Magenta,
     Brown,
-    White,
     Gray,
+    DarkGray,
     LightBlue,
     LightGreen,
     LightCyan,
     LightRed,
     LightMagenta,
     Yellow,
-    BrightYellow,
+    White,
 }

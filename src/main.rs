@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+use core::fmt::Write;
 use core::panic::PanicInfo;
 
 use crate::{
@@ -18,7 +19,7 @@ pub extern "C" fn _start() -> ! {
         cursor_color: VgaTextColor::new(VgaColor::Gray, VgaColor::Black),
     };
 
-    term.write_string("Hello world!\n");
+    writeln!(term, "Hello world!").unwrap();
 
     loop {}
 }

@@ -1,3 +1,5 @@
+use core::fmt::Write;
+
 use crate::vga::{self, VgaChar, VgaPos, VgaTextColor};
 
 pub struct Terminal {
@@ -6,32 +8,42 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn write_string(&mut self, str: &str) {
-        for c in str.bytes() {
-            self.write_char(c)
+    pub fn write_char(&mut self, char: u8) {
+        if char == b'\n' {
+            return self.newline();
         }
+
+        let vga_char = VgaChar {
+            char,
+            color: self.cursor_color,
+        };
+
+        vga::VGA_BUFFER.write(vga_char, self.cursor_pos);
+
+        const MAX_X: u8 = vga::BUFFER_WIDTH as u8 - 1;
+        match self.cursor_pos.x {
+            MAX_X => self.newline(),
+            x => self.cursor_pos.x = x + 1,
+        };
     }
 
-    pub fn write_char(&mut self, char: u8) {
-        const MAX_X: u8 = vga::WIDTH as u8 - 1;
-        const MAX_Y: u8 = vga::HEIGHT as u8 - 1;
+    fn newline(&mut self) {
+        const MAX_Y: u8 = vga::BUFFER_HEIGHT as u8 - 1;
 
-        if char == b'\n' {
-            self.cursor_pos = match self.cursor_pos {
-                VgaPos { x: _, y: MAX_Y } => VgaPos { x: 0, y: 0 },
-                VgaPos { x: _, y } => VgaPos { x: 0, y: y + 1 },
-            };
+        self.cursor_pos.x = 0;
+        self.cursor_pos.y = match self.cursor_pos.y {
+            MAX_Y => 0,
+            y => y + 1,
+        };
+    }
+}
 
-            return;
+impl Write for Terminal {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        for c in s.bytes() {
+            self.write_char(c);
         }
 
-        let vga_char = VgaChar::new(char, self.cursor_color);
-        vga::put_char(vga_char, self.cursor_pos);
-
-        self.cursor_pos = match self.cursor_pos {
-            VgaPos { x: MAX_X, y: MAX_Y } => VgaPos { x: 0, y: 0 },
-            VgaPos { x: MAX_X, y } => VgaPos { x: 0, y: y + 1 },
-            VgaPos { x, y } => VgaPos { x: x + 1, y },
-        }
+        Ok(())
     }
 }
