@@ -13,7 +13,7 @@ mod term;
 mod vga;
 
 #[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn kernel_main() -> ! {
     let mut term: Terminal = Terminal {
         cursor_pos: VgaPos { x: 0, y: 0 },
         cursor_color: VgaTextColor::new(VgaColor::Gray, VgaColor::Black),

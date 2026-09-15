@@ -15,8 +15,10 @@ panic = "abort"
 panic = "abort"
 
 [dependencies]
-bootloader = "0.9"
 num_enum = { version = "0.7.6", default-features = false }
+
+[build-dependencies]
+cc = "1"
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
