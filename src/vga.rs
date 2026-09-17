@@ -30,10 +30,12 @@ impl VgaTextColor {
         Self((bg_color as u8) << 4 | (fg_color as u8))
     }
 
+    #[allow(unused)]
     pub fn fg_color(self) -> VgaColor {
         VgaColor::try_from_primitive(self.0 & 0xf).unwrap()
     }
 
+    #[allow(unused)]
     pub fn bg_color(self) -> VgaColor {
         VgaColor::try_from_primitive(self.0 >> 4).unwrap()
     }

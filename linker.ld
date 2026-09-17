@@ -15,6 +15,15 @@ SECTIONS
         *(.rodata*)
     }
 
+    .gdt ALIGN(8) :
+    {
+        GDT_START = .;
+        KEEP(*(.gdt))
+        GDT_END = .;
+    }
+
+    GDT_LIMIT = GDT_END - GDT_START - 1;
+
     .data ALIGN(4K) :
     {
         *(.data*)
