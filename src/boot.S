@@ -14,15 +14,6 @@ multiboot_header:
 
 multiboot_header_end:
 
-
-.section .rodata
-.align 4
-
-gdt_pointer:
-    .word GDT_LIMIT
-    .long GDT_START
-
-
 .section .bss
 .align 16
 
@@ -46,23 +37,6 @@ _start:
 1:
     hlt
     jmp 1b
-
-.global load_gdt
-.type load_gdt, @function
-
-load_gdt:
-    lgdt gdt_pointer
-    ljmp $0x08, $reload_cs
-
-reload_cs:
-    mov $0x10, %ax
-    mov %ax, %ds
-    mov %ax, %es
-    mov %ax, %fs
-    mov %ax, %gs
-    mov %ax, %ss
-
-    ret
 
 .global read_gdt
 .type read_gdt, @function

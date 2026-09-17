@@ -16,16 +16,14 @@ mod vga;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_main() -> ! {
-    unsafe {
-        load_gdt();
-    }
-
     let mut term: Terminal = Terminal {
         cursor_pos: VgaPos { x: 0, y: 0 },
         cursor_color: VgaTextColor::new(VgaColor::Gray, VgaColor::Black),
     };
 
     writeln!(term, "Hello world!").unwrap();
+
+    gdt::load_gdt();
 
     let mut gdt_base = 0;
     let mut gdt_limit = 0;
@@ -44,6 +42,5 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 
 unsafe extern "C" {
-    fn load_gdt();
     fn read_gdt(base: *mut u32, limit: *mut u32);
 }

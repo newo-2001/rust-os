@@ -1,5 +1,47 @@
+use core::arch::asm;
+
+pub fn load_gdt() {
+    const KERNEL_CODE_SELECTOR: u16 = 0x08;
+    const KERNEL_DATA_SELECTOR: u16 = 0x10;
+
+    let pointer = GdtPointer {
+        limit: (core::mem::size_of_val(&GLOBAL_DESCRIPTOR_TABLE) - 1) as u16,
+        base: GLOBAL_DESCRIPTOR_TABLE.as_ptr() as u32,
+    };
+
+    unsafe {
+        asm!(
+            // Load our global descriptor table
+            "lgdt [{pointer}]",
+
+            // Obtain the address of the continuation label
+            "call 2f",
+            "2:",
+            "pop eax",
+            "add eax, 3 -1b",
+
+            // Perform long jump into kernel code segment
+            "push {code}",
+            "push eax",
+            "retf",
+
+            // Update the rest of the segment registers
+            "3:",
+            "mov ax, {data}",
+            "mov ds, ax",
+            "mov es, ax",
+            "mov fs, ax",
+            "mov gs, ax",
+            "mov ss, ax",
+
+            pointer = in(reg) &pointer,
+            code = const KERNEL_CODE_SELECTOR,
+            data = const KERNEL_DATA_SELECTOR
+        )
+    }
+}
+
 #[used]
-#[unsafe(link_section = ".gdt")]
 #[unsafe(no_mangle)]
 static GLOBAL_DESCRIPTOR_TABLE: [GdtEntry; 3] = [
     GdtEntry(0),
@@ -30,6 +72,13 @@ static GLOBAL_DESCRIPTOR_TABLE: [GdtEntry; 3] = [
         },
     ),
 ];
+
+#[repr(C, packed)]
+#[derive(Clone, Copy)]
+struct GdtPointer {
+    limit: u16,
+    base: u32,
+}
 
 #[derive(Clone, Copy)]
 enum PrivilegeLevel {
