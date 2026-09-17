@@ -1,9 +1,9 @@
 use core::arch::asm;
 
-pub fn load_gdt() {
-    const KERNEL_CODE_SELECTOR: u16 = 1 << 3;
-    const KERNEL_DATA_SELECTOR: u16 = 2 << 3;
+pub const KERNEL_CODE_SELECTOR: u16 = 1 << 3;
+pub const KERNEL_DATA_SELECTOR: u16 = 2 << 3;
 
+pub fn load_gdt() {
     let pointer = GdtPointer {
         limit: (core::mem::size_of_val(&GLOBAL_DESCRIPTOR_TABLE) - 1) as u16,
         base: GLOBAL_DESCRIPTOR_TABLE.as_ptr() as u32,
@@ -42,19 +42,16 @@ pub fn load_gdt() {
 }
 
 pub fn read_gdt() -> GdtPointer {
-    let mut gdt: u64 = 0;
+    let mut gdt = GdtPointer { limit: 0, base: 0 };
 
     unsafe {
         asm!(
-            "sgdt [{gdt}]",
-            gdt = in(reg) &mut gdt
+            "sgdt [{gdt_out}]",
+            gdt_out = in(reg) &mut gdt
         )
     }
 
-    GdtPointer {
-        limit: (gdt & 0xffff) as u16,
-        base: (gdt >> 16) as u32,
-    }
+    gdt
 }
 
 #[unsafe(no_mangle)]
@@ -96,7 +93,7 @@ pub struct GdtPointer {
 }
 
 #[derive(Clone, Copy)]
-enum PrivilegeLevel {
+pub enum PrivilegeLevel {
     Kernel = 0,
 
     #[expect(unused)]

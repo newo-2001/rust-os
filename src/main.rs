@@ -7,11 +7,13 @@ use core::panic::PanicInfo;
 
 use crate::{
     gdt::GdtPointer,
+    idt::IdtPointer,
     term::Terminal,
     vga::{VgaColor, VgaPos, VgaTextColor},
 };
 
 mod gdt;
+mod idt;
 mod term;
 mod vga;
 
@@ -28,7 +30,14 @@ pub extern "C" fn kernel_main() -> ! {
 
     {
         let GdtPointer { base, limit } = gdt::read_gdt();
-        writeln!(term, "GDT (base: {base}, limit: {limit})",).unwrap();
+        writeln!(term, "GDT (base: {base}, limit: {limit})").unwrap();
+    }
+
+    idt::load_idt();
+
+    {
+        let IdtPointer { base, limit } = idt::read_idt();
+        writeln!(term, "IDT (base: {base}, limit: {limit})").unwrap();
     }
 
     loop {}
