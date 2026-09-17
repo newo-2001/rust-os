@@ -37,25 +37,3 @@ _start:
 1:
     hlt
     jmp 1b
-
-.global read_gdt
-.type read_gdt, @function
-
-read_gdt:
-    sgdt gdt_readback
-
-    movl gdt_readback + 2, %eax
-    movzwl gdt_readback, %edx
-
-    movl 4(%esp), %ecx
-    movl %eax, (%ecx)
-
-    movl 8(%esp), %ecx
-    movl %edx, (%ecx)
-
-    ret
-
-.section .bss
-.align 2
-gdt_readback:
-    .skip 6

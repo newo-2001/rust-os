@@ -1,8 +1,8 @@
 use core::arch::asm;
 
 pub fn load_gdt() {
-    const KERNEL_CODE_SELECTOR: u16 = 0x08;
-    const KERNEL_DATA_SELECTOR: u16 = 0x10;
+    const KERNEL_CODE_SELECTOR: u16 = 1 << 3;
+    const KERNEL_DATA_SELECTOR: u16 = 2 << 3;
 
     let pointer = GdtPointer {
         limit: (core::mem::size_of_val(&GLOBAL_DESCRIPTOR_TABLE) - 1) as u16,
@@ -41,7 +41,22 @@ pub fn load_gdt() {
     }
 }
 
-#[used]
+pub fn read_gdt() -> GdtPointer {
+    let mut gdt: u64 = 0;
+
+    unsafe {
+        asm!(
+            "sgdt [{gdt}]",
+            gdt = in(reg) &mut gdt
+        )
+    }
+
+    GdtPointer {
+        limit: (gdt & 0xffff) as u16,
+        base: (gdt >> 16) as u32,
+    }
+}
+
 #[unsafe(no_mangle)]
 static GLOBAL_DESCRIPTOR_TABLE: [GdtEntry; 3] = [
     GdtEntry(0),
@@ -75,20 +90,24 @@ static GLOBAL_DESCRIPTOR_TABLE: [GdtEntry; 3] = [
 
 #[repr(C, packed)]
 #[derive(Clone, Copy)]
-struct GdtPointer {
-    limit: u16,
-    base: u32,
+pub struct GdtPointer {
+    pub limit: u16,
+    pub base: u32,
 }
 
 #[derive(Clone, Copy)]
 enum PrivilegeLevel {
     Kernel = 0,
+
+    #[expect(unused)]
     User = 3,
 }
 
 #[derive(Clone, Copy)]
 enum ExpansionDirection {
     Up = 0,
+
+    #[expect(unused)]
     Down = 1,
 }
 
@@ -152,12 +171,14 @@ const impl Access for DataAccess {
 
 #[derive(Clone, Copy)]
 enum Granularity {
+    #[expect(unused)]
     Byte = 0,
     Page = 1,
 }
 
 #[derive(Clone, Copy)]
 enum SegmentSize {
+    #[expect(unused)]
     Size16 = 0,
     Size32 = 1,
 }

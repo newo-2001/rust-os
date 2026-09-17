@@ -6,6 +6,7 @@ use core::fmt::Write;
 use core::panic::PanicInfo;
 
 use crate::{
+    gdt::GdtPointer,
     term::Terminal,
     vga::{VgaColor, VgaPos, VgaTextColor},
 };
@@ -25,13 +26,10 @@ pub extern "C" fn kernel_main() -> ! {
 
     gdt::load_gdt();
 
-    let mut gdt_base = 0;
-    let mut gdt_limit = 0;
-    unsafe {
-        read_gdt(&mut gdt_base, &mut gdt_limit);
+    {
+        let GdtPointer { base, limit } = gdt::read_gdt();
+        writeln!(term, "GDT (base: {base}, limit: {limit})",).unwrap();
     }
-
-    writeln!(term, "GDT (base: {gdt_base}, limit: {gdt_limit})").unwrap();
 
     loop {}
 }
@@ -39,8 +37,4 @@ pub extern "C" fn kernel_main() -> ! {
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
-}
-
-unsafe extern "C" {
-    fn read_gdt(base: *mut u32, limit: *mut u32);
 }
