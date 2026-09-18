@@ -1,6 +1,6 @@
 use core::fmt::Write;
 
-use crate::vga::{self, VgaChar, VgaPos, VgaTextColor};
+use crate::devices::vga::{self, VgaChar, VgaPos, VgaTextColor};
 
 pub struct Terminal {
     pub cursor_pos: VgaPos,

@@ -1,13 +1,11 @@
-use core::arch::asm;
-
 use crate::{
-    io::IoPort,
-    pic::{END_OF_INTERRUPT, MASTER_COMMAND_PORT},
-    vga::{
+    devices::pic::{END_OF_INTERRUPT, MASTER_COMMAND_PORT},
+    devices::vga::{
         VGA_BUFFER, VgaChar,
         VgaColor::{Black, LightGreen},
         VgaPos, VgaTextColor,
     },
+    io::IoPort,
 };
 
 pub type InterruptHandler = extern "x86-interrupt" fn(&InterruptStackFrame);

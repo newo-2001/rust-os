@@ -5,20 +5,20 @@
 use core::panic::PanicInfo;
 use core::{arch::asm, fmt::Write};
 
+use crate::devices::pic;
 use crate::{
+    devices::vga::{VgaColor, VgaPos, VgaTextColor},
     gdt::GdtPointer,
     idt::IdtPointer,
     term::Terminal,
-    vga::{VgaColor, VgaPos, VgaTextColor},
 };
 
+mod devices;
 mod gdt;
 mod idt;
 mod interrupts;
 mod io;
-mod pic;
 mod term;
-mod vga;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_main() -> ! {
