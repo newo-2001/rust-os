@@ -7,7 +7,7 @@ type Idt = [IdtEntry; 256];
 // Table needs to be mutable because the final handler addresses are not known at compile time
 static mut INTERRUPT_DESCRIPTOR_TABLE: Idt = [IdtEntry(0); 256];
 
-pub fn load_idt() {
+pub fn load() {
     let keyboard_interrupt_vector = IdtEntry::new(
         keyboard_interrupt_handler as *const () as usize as u32,
         gdt::KERNEL_CODE_SELECTOR,
@@ -32,7 +32,7 @@ pub fn load_idt() {
     }
 }
 
-pub fn read_idt() -> IdtPointer {
+pub fn read() -> IdtPointer {
     let mut idt = IdtPointer { limit: 0, base: 0 };
 
     unsafe {

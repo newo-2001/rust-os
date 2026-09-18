@@ -14,6 +14,8 @@ use crate::{
 
 mod gdt;
 mod idt;
+mod io;
+mod pic;
 mod term;
 mod vga;
 
@@ -26,19 +28,26 @@ pub extern "C" fn kernel_main() -> ! {
 
     writeln!(term, "Hello world!").unwrap();
 
-    gdt::load_gdt();
+    gdt::load();
 
     {
-        let GdtPointer { base, limit } = gdt::read_gdt();
+        let GdtPointer { base, limit } = gdt::read();
         writeln!(term, "GDT (base: {base}, limit: {limit})").unwrap();
     }
 
-    idt::load_idt();
+    idt::load();
 
     {
-        let IdtPointer { base, limit } = idt::read_idt();
+        let IdtPointer { base, limit } = idt::read();
         writeln!(term, "IDT (base: {base}, limit: {limit})").unwrap();
     }
+
+    pic::initialize();
+
+    let master_mask = unsafe { pic::MASTER_DATA_PORT.in_byte() };
+    let slave_mask = unsafe { pic::SLAVE_DATA_PORT.in_byte() };
+    writeln!(term, "Master PIC mask: {:#010b}", master_mask).unwrap();
+    writeln!(term, "Slave PIC mask: {:#010b}", slave_mask).unwrap();
 
     loop {}
 }

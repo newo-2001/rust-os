@@ -3,7 +3,7 @@ use core::arch::asm;
 pub const KERNEL_CODE_SELECTOR: u16 = 1 << 3;
 pub const KERNEL_DATA_SELECTOR: u16 = 2 << 3;
 
-pub fn load_gdt() {
+pub fn load() {
     let pointer = GdtPointer {
         limit: (core::mem::size_of_val(&GLOBAL_DESCRIPTOR_TABLE) - 1) as u16,
         base: GLOBAL_DESCRIPTOR_TABLE.as_ptr() as u32,
@@ -41,7 +41,7 @@ pub fn load_gdt() {
     }
 }
 
-pub fn read_gdt() -> GdtPointer {
+pub fn read() -> GdtPointer {
     let mut gdt = GdtPointer { limit: 0, base: 0 };
 
     unsafe {
