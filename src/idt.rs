@@ -1,6 +1,9 @@
 use core::arch::asm;
 
-use crate::gdt::{self, PrivilegeLevel};
+use crate::{
+    gdt::{self, PrivilegeLevel},
+    interrupts::{InterruptHandler, keyboard_interrupt_handler},
+};
 
 type Idt = [IdtEntry; 256];
 
@@ -9,7 +12,7 @@ static mut INTERRUPT_DESCRIPTOR_TABLE: Idt = [IdtEntry(0); 256];
 
 pub fn load() {
     let keyboard_interrupt_vector = IdtEntry::new(
-        keyboard_interrupt_handler as *const () as usize as u32,
+        keyboard_interrupt_handler,
         gdt::KERNEL_CODE_SELECTOR,
         TypeAttributes {
             gate_type: GateType::InterruptGate32,
@@ -45,8 +48,6 @@ pub fn read() -> IdtPointer {
     idt
 }
 
-fn keyboard_interrupt_handler() {}
-
 #[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub struct IdtPointer {
@@ -59,20 +60,30 @@ pub struct IdtPointer {
 struct IdtEntry(u64);
 
 impl IdtEntry {
-    const fn new(offset: u32, segment_selector: u16, type_attributes: TypeAttributes) -> Self {
-        let offset_low = u64::from(offset & 0xffff);
-        let offset_high = u64::from(offset >> 16);
+    fn new(
+        handler: InterruptHandler,
+        segment_selector: u16,
+        type_attributes: TypeAttributes,
+    ) -> Self {
+        let offset = handler as *const () as u64;
+        let offset_low = offset & 0xffff;
+        let offset_high = (offset >> 16) & 0xffff;
 
         let reserved = 0u64 << 0;
         let segment_selector = u64::from(segment_selector);
         let attribute_bits = u64::from(type_attributes.bits());
+
         let value = (offset_low << 0)
-            | (reserved << 8)
             | (segment_selector << 16)
-            | (attribute_bits << 32)
+            | (reserved << 32)
+            | (attribute_bits << 40)
             | (offset_high << 48);
 
         Self(value)
+    }
+
+    pub fn raw(self) -> u64 {
+        self.0
     }
 }
 

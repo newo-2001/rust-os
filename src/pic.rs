@@ -1,10 +1,12 @@
 use crate::io::IoPort;
 
-const MASTER_COMMAND_PORT: IoPort = IoPort::new(0x20);
+pub const MASTER_COMMAND_PORT: IoPort = IoPort::new(0x20);
 pub const MASTER_DATA_PORT: IoPort = IoPort::new(0x21);
 
-const SLAVE_COMMAND_PORT: IoPort = IoPort::new(0xa0);
+pub const SLAVE_COMMAND_PORT: IoPort = IoPort::new(0xa0);
 pub const SLAVE_DATA_PORT: IoPort = IoPort::new(0xa1);
+
+pub const END_OF_INTERRUPT: u8 = 0x20;
 
 pub fn initialize() {
     configure_pic(PicConfiguration {
