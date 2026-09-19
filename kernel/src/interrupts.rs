@@ -5,12 +5,9 @@ use crate::{
         VgaColor::{Black, LightGreen},
         VgaPos, VgaTextColor,
     },
-    io::IoPort,
 };
 
 pub type InterruptHandler = extern "x86-interrupt" fn(&InterruptStackFrame);
-
-const KEYBOARD_DATA_PORT: IoPort = IoPort::new(0x60);
 
 pub extern "x86-interrupt" fn keyboard_interrupt_handler(_frame: &InterruptStackFrame) {
     unsafe {
@@ -23,8 +20,6 @@ pub extern "x86-interrupt" fn keyboard_interrupt_handler(_frame: &InterruptStack
         };
 
         VGA_BUFFER.write(char, pos);
-
-        let _scancode = KEYBOARD_DATA_PORT.in_byte();
 
         MASTER_COMMAND_PORT.out_byte(END_OF_INTERRUPT);
     }

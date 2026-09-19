@@ -81,10 +81,6 @@ impl IdtEntry {
 
         Self(value)
     }
-
-    pub fn raw(self) -> u64 {
-        self.0
-    }
 }
 
 #[derive(Clone, Copy)]

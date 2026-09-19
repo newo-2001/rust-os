@@ -7,6 +7,6 @@ mkdir -p isodir/boot/grub
 cp "$1" isodir/boot/kernel
 cp grub.cfg isodir/boot/grub/grub.cfg
 
-grub-mkrescue -o target/kernel.iso isodir >/dev/null
+grub-mkrescue -o ../target/kernel.iso isodir >/dev/null
 
-exec qemu-system-i386 -cdrom target/kernel.iso
+exec qemu-system-i386 -cdrom ../target/kernel.iso

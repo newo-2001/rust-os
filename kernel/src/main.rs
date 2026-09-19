@@ -5,13 +5,14 @@
 use core::panic::PanicInfo;
 use core::{arch::asm, fmt::Write};
 
-use crate::devices::pic;
 use crate::{
+    devices::pic,
     devices::vga::{VgaColor, VgaPos, VgaTextColor},
-    gdt::GdtPointer,
-    idt::IdtPointer,
     term::Terminal,
 };
+
+use crate::{gdt::GdtPointer, idt::IdtPointer};
+use libkernel::datastructures::BufferedQueue;
 
 mod devices;
 mod gdt;

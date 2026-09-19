@@ -1,26 +1,8 @@
-[package]
-name = "kernel"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+resolver = "3"
+members = ["kernel", "libkernel"]
 
-[[bin]]
-name = "kernel"
-test = false
-bench = false
-
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"
-
-[dependencies]
-num_enum = { version = "0.7.6", default-features = false }
-
-[build-dependencies]
-cc = "1"
-
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 missing_errors_doc = "allow"

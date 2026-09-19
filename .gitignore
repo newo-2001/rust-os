@@ -1,2 +1,2 @@
-/target
-/isodir
+**/target/
+/kernel/isodir/
