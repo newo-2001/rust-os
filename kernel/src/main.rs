@@ -12,7 +12,6 @@ use crate::{
 };
 
 use crate::{gdt::GdtPointer, idt::IdtPointer};
-use libkernel::datastructures::BufferedQueue;
 
 mod devices;
 mod gdt;

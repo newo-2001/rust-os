@@ -1,3 +1,3 @@
-mod buffered_queue;
+mod ringbuffer;
 
-pub use buffered_queue::{BufferFullError, BufferedQueue};
+pub use ringbuffer::{BufferFullError, RingBuffer, RingBufferIterator};
