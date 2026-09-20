@@ -5,10 +5,10 @@
 use core::panic::PanicInfo;
 use core::{arch::asm, fmt::Write};
 
-use crate::devices::keyboard::{KeyAction, KeyEvent};
+use crate::devices::keyboard::{KeyAction, KeyCode, KeyEvent};
 use crate::{
     devices::pic,
-    devices::vga::{VgaColor, VgaPos, VgaTextColor},
+    devices::vga::{VgaColor, VgaTextColor},
     term::Terminal,
 };
 
@@ -23,10 +23,7 @@ mod term;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_main() -> ! {
-    let mut term: Terminal = Terminal {
-        cursor_pos: VgaPos { x: 0, y: 0 },
-        cursor_color: VgaTextColor::new(VgaColor::Gray, VgaColor::Black),
-    };
+    let mut term = Terminal::new();
 
     writeln!(term, "Hello world!").unwrap();
 
@@ -64,22 +61,23 @@ pub extern "C" fn kernel_main() -> ! {
     term.cursor_color = VgaTextColor::new(VgaColor::LightGreen, VgaColor::Black);
 
     loop {
-        match keyboard.poll_event() {
-            None
-            | Some(KeyEvent {
-                action: KeyAction::Release,
-                ..
-            }) => {}
-            Some(KeyEvent {
-                action: KeyAction::Press,
-                key_code,
-            }) => match devices::keyboard::key_code_to_ascii(key_code) {
-                Some(ascii_char) => {
-                    term.write_char(ascii_char);
-                }
-                None => {}
-            },
+        if let Some(event) = keyboard.poll_event() {
+            handle_key_event(event, &mut term);
         }
+    }
+}
+
+fn handle_key_event(event: KeyEvent, term: &mut Terminal) {
+    if event.action == KeyAction::Release {
+        return;
+    }
+
+    match event.key_code {
+        KeyCode::KeyBackspace => term.delete_char(),
+        key_code => match devices::keyboard::key_code_to_ascii(key_code) {
+            Some(ascii_char) => term.write_char(ascii_char),
+            None => {}
+        },
     }
 }
 
