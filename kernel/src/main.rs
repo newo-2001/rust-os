@@ -5,6 +5,7 @@
 use core::panic::PanicInfo;
 use core::{arch::asm, fmt::Write};
 
+use crate::devices::keyboard::{KeyAction, KeyEvent};
 use crate::{
     devices::pic,
     devices::vga::{VgaColor, VgaPos, VgaTextColor},
@@ -57,7 +58,29 @@ pub extern "C" fn kernel_main() -> ! {
 
     writeln!(term, "Hello again!").unwrap();
 
-    loop {}
+    term.cursor_color = VgaTextColor::new(VgaColor::LightGreen, VgaColor::Black);
+
+    let keyboard = unsafe { (&raw mut devices::keyboard::KEYBOARD).as_mut() }.unwrap();
+    term.cursor_color = VgaTextColor::new(VgaColor::LightGreen, VgaColor::Black);
+
+    loop {
+        match keyboard.poll_event() {
+            None
+            | Some(KeyEvent {
+                action: KeyAction::Release,
+                ..
+            }) => {}
+            Some(KeyEvent {
+                action: KeyAction::Press,
+                key_code,
+            }) => match devices::keyboard::key_code_to_ascii(key_code) {
+                Some(ascii_char) => {
+                    term.write_char(ascii_char);
+                }
+                None => {}
+            },
+        }
+    }
 }
 
 #[panic_handler]

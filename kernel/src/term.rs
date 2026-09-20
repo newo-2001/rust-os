@@ -11,6 +11,9 @@ impl Terminal {
     pub fn write_char(&mut self, char: u8) {
         if char == b'\n' {
             return self.newline();
+        } else if char == b'\t' {
+            // TODO: tab handling
+            return;
         }
 
         let vga_char = VgaChar {

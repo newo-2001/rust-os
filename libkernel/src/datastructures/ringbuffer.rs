@@ -57,6 +57,10 @@ impl<T, const N: usize> RingBuffer<T, N> {
         Some(unsafe { entry.assume_init() })
     }
 
+    pub fn clear(&mut self) {
+        while self.pop_front().is_some() {}
+    }
+
     const fn buffer_idx(&self, index: usize) -> usize {
         (self.head + index) % N
     }
@@ -207,5 +211,16 @@ mod tests {
         let mut iterator = buffer.iter();
         assert_eq!(Some(&1), iterator.next());
         assert_eq!(None, iterator.next());
+    }
+
+    #[test]
+    fn clear_removes_all_elements() {
+        let mut buffer = RingBuffer::<u32, 2>::new();
+        buffer.push_back(1).unwrap();
+        buffer.push_back(2).unwrap();
+        buffer.clear();
+
+        assert_eq!(0, buffer.length);
+        assert_eq!(None, buffer.pop_front());
     }
 }
