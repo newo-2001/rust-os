@@ -57,8 +57,7 @@ pub extern "C" fn kernel_main() -> ! {
 
     term.cursor_color = VgaTextColor::new(VgaColor::LightGreen, VgaColor::Black);
 
-    let keyboard = unsafe { (&raw mut devices::keyboard::KEYBOARD).as_mut() }.unwrap();
-    term.cursor_color = VgaTextColor::new(VgaColor::LightGreen, VgaColor::Black);
+    let keyboard = &devices::keyboard::KEYBOARD;
 
     loop {
         if let Some(event) = keyboard.poll_event() {
