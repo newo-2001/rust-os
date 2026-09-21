@@ -1,17 +1,17 @@
-use libkernel::datastructures::RingBuffer;
+use libkernel::datastructures::SpscQueue;
 
 use crate::io::IoPort;
 
 pub struct Keyboard {
     port: IoPort,
-    scancode_buffer: RingBuffer<u8, 6>,
-    key_event_buffer: RingBuffer<KeyEvent, 10>,
+    scancode_buffer: SpscQueue<u8, 7>,
+    key_event_buffer: SpscQueue<KeyEvent, 11>,
 }
 
 pub static mut KEYBOARD: Keyboard = Keyboard {
     port: IoPort::new(0x60),
-    scancode_buffer: RingBuffer::new(),
-    key_event_buffer: RingBuffer::new(),
+    scancode_buffer: SpscQueue::new(),
+    key_event_buffer: SpscQueue::new(),
 };
 
 impl Keyboard {
@@ -60,10 +60,10 @@ pub enum KeyAction {
     Release,
 }
 
-fn parse_keycode<const N: usize>(codes: &RingBuffer<u8, N>) -> ParseResult {
+fn parse_keycode<const N: usize>(codes: &SpscQueue<u8, N>) -> ParseResult {
     use KeyCode as KC;
 
-    let Some(first_byte) = codes.get(0) else {
+    let Some(first_byte) = codes.peek(0) else {
         return ParseResult::Incomplete;
     };
 

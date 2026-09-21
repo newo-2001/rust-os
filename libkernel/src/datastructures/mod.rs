@@ -1,3 +1,3 @@
-mod ringbuffer;
+mod spscqueue;
 
-pub use ringbuffer::{BufferFullError, RingBuffer, RingBufferIterator};
+pub use spscqueue::{BufferFullError, SpscQueue};
