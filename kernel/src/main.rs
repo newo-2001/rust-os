@@ -48,6 +48,11 @@ pub extern "C" fn kernel_main() -> ! {
     writeln!(term, "Master PIC mask: {:#010b}", master_mask).unwrap();
     writeln!(term, "Slave PIC mask: {:#010b}", slave_mask).unwrap();
 
+    {
+        let mut com1 = devices::serial::COM1.lock();
+        com1.initialize()
+    }
+
     // Enable interrupts
     unsafe {
         asm!("sti");
