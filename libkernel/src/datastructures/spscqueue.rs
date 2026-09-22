@@ -6,7 +6,7 @@ use core::{
 
 use thiserror::Error;
 
-/// An SpscQueue is a Single Producer Single Consumer queue.
+/// An [`SpscQueue`] is a Single Producer Single Consumer queue.
 /// Violating this assumption can lead to UB.
 /// It uses interior mutability to be lock-free.
 ///
@@ -24,6 +24,12 @@ pub struct SpscQueue<T, const N: usize> {
 pub struct BufferFullError(usize);
 
 impl<T, const N: usize> SpscQueue<T, N> {
+    /// Constructs a new [`SpscQueue`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `N < 2`.
+    #[must_use]
     pub const fn new() -> Self {
         assert!(N >= 2);
 
@@ -112,6 +118,19 @@ impl<T, const N: usize> SpscQueue<T, N> {
         } else {
             N - read + write
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        let read = self.read.load(Ordering::Relaxed);
+        let write = self.write.load(Ordering::Relaxed);
+
+        read == write
+    }
+}
+
+impl<T, const N: usize> Default for SpscQueue<T, N> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

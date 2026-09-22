@@ -25,7 +25,7 @@ impl<T> SpinLock<T> {
     ///
     /// It is very possible to end up in a deadlock where two threads are waiting for
     /// eachother's resources to become available.
-    pub fn lock<'a>(&'a self) -> LockGuard<'a, T> {
+    pub fn lock(&self) -> LockGuard<'_, T> {
         while self
             .available
             .compare_exchange(true, false, Ordering::Acquire, Ordering::Relaxed)
@@ -40,19 +40,19 @@ impl<T> SpinLock<T> {
 
 unsafe impl<T: Send> Sync for SpinLock<T> {}
 
-/// The LockGuard is a proof of exclusive ownership acquired by calling [`SpinLock::lock()`]
+/// The [`LockGuard`] is a proof of exclusive ownership acquired by calling [`SpinLock::lock()`]
 /// When it is dropped, the lock is automatically released.
 pub struct LockGuard<'a, T> {
     source: &'a SpinLock<T>,
 }
 
-impl<'a, T> Drop for LockGuard<'a, T> {
+impl<T> Drop for LockGuard<'_, T> {
     fn drop(&mut self) {
         self.source.available.store(true, Ordering::Release);
     }
 }
 
-impl<'a, T> Deref for LockGuard<'a, T> {
+impl<T> Deref for LockGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -60,7 +60,7 @@ impl<'a, T> Deref for LockGuard<'a, T> {
     }
 }
 
-impl<'a, T> DerefMut for LockGuard<'a, T> {
+impl<T> DerefMut for LockGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *self.source.value.get() }
     }

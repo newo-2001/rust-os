@@ -16,7 +16,7 @@ pub fn initialize() {
         // For master we set bit 2 to identify IRQ2 as the slave
         connection: (1 << 2),
         // We enable IRQ2 (slave) and IRQ1(keyboard)
-        port_mask: 0b11111001,
+        port_mask: 0b1111_1001,
     });
 
     configure_pic(PicConfiguration {
@@ -25,7 +25,7 @@ pub fn initialize() {
         starting_vector: 0x28,
         // For slave we set the cascade identity to IRQ2
         connection: 2,
-        port_mask: 0b11111111,
+        port_mask: 0b1111_1111,
     })
 }
 
