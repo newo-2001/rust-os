@@ -9,4 +9,6 @@ cp grub.cfg isodir/boot/grub/grub.cfg
 
 grub-mkrescue -o ../target/kernel.iso isodir >/dev/null
 
-exec qemu-system-i386 -cdrom ../target/kernel.iso
+exec qemu-system-i386 \
+    -cdrom ../target/kernel.iso \
+    -serial stdio

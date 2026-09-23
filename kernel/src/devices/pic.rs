@@ -1,3 +1,5 @@
+use log::trace;
+
 use crate::io::IoPort;
 
 pub const MASTER_COMMAND_PORT: IoPort = IoPort::new(0x20);
@@ -26,7 +28,9 @@ pub fn initialize() {
         // For slave we set the cascade identity to IRQ2
         connection: 2,
         port_mask: 0b1111_1111,
-    })
+    });
+
+    trace!("PIC initialized");
 }
 
 fn configure_pic(config: PicConfiguration) {

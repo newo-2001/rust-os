@@ -1,5 +1,7 @@
 use core::arch::asm;
 
+use log::trace;
+
 pub const KERNEL_CODE_SELECTOR: u16 = 1 << 3;
 pub const KERNEL_DATA_SELECTOR: u16 = 2 << 3;
 
@@ -37,8 +39,10 @@ pub fn load() {
             pointer = in(reg) &pointer,
             code = const KERNEL_CODE_SELECTOR,
             data = const KERNEL_DATA_SELECTOR
-        )
+        );
     }
+
+    trace!("GDT loaded");
 }
 
 pub fn read() -> GdtPointer {

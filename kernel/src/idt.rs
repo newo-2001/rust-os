@@ -1,5 +1,7 @@
 use core::arch::asm;
 
+use log::trace;
+
 use crate::{
     gdt::{self, PrivilegeLevel},
     interrupts::{InterruptHandler, keyboard_interrupt_handler},
@@ -33,6 +35,8 @@ pub fn load() {
             pointer = in(reg) &pointer
         )
     }
+
+    trace!("IDT loaded")
 }
 
 pub fn read() -> IdtPointer {

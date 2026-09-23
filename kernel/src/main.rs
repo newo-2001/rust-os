@@ -1,9 +1,11 @@
 #![no_std]
 #![no_main]
-#![feature(const_trait_impl, const_convert, abi_x86_interrupt)]
+#![feature(const_trait_impl, const_convert, abi_x86_interrupt, exact_div)]
 
 use core::panic::PanicInfo;
 use core::{arch::asm, fmt::Write};
+
+use log::{info, trace};
 
 use crate::devices::keyboard::{KeyAction, KeyCode, KeyEvent};
 use crate::{
@@ -19,10 +21,20 @@ mod gdt;
 mod idt;
 mod interrupts;
 mod io;
+mod logger;
 mod term;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_main() -> ! {
+    {
+        let mut com1 = devices::serial::COM1.lock();
+        com1.initialize()
+    }
+
+    log::set_logger(&logger::LOGGER).unwrap();
+    log::set_max_level(log::LevelFilter::max());
+    info!("Logger initialized, hello world!");
+
     let mut term = Terminal::new();
 
     writeln!(term, "Hello world!").unwrap();
@@ -48,24 +60,16 @@ pub extern "C" fn kernel_main() -> ! {
     writeln!(term, "Master PIC mask: {:#010b}", master_mask).unwrap();
     writeln!(term, "Slave PIC mask: {:#010b}", slave_mask).unwrap();
 
-    {
-        let mut com1 = devices::serial::COM1.lock();
-        com1.initialize()
-    }
-
     // Enable interrupts
     unsafe {
         asm!("sti");
     }
-
-    writeln!(term, "Hello again!").unwrap();
+    trace!("Interrupts enabled");
 
     term.cursor_color = VgaTextColor::new(VgaColor::LightGreen, VgaColor::Black);
 
-    let keyboard = &devices::keyboard::KEYBOARD;
-
     loop {
-        if let Some(event) = keyboard.poll_event() {
+        if let Some(event) = devices::keyboard::KEYBOARD.poll_event() {
             handle_key_event(event, &mut term);
         }
     }

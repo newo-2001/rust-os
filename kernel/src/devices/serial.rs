@@ -1,3 +1,5 @@
+use core::fmt::Write;
+
 use libkernel::sync::SpinLock;
 use num_enum::TryFromPrimitive;
 
@@ -7,6 +9,21 @@ pub static COM1: SpinLock<SerialPort> = SpinLock::new(SerialPort::new(0x3f8));
 
 pub struct SerialPort {
     base_port: u16,
+}
+
+pub struct BaudRate {
+    divisor: u16,
+}
+
+impl BaudRate {
+    pub fn new(baud_rate: u32) -> Option<Self> {
+        const UART_CLOCK_HZ: u32 = 115_200;
+
+        UART_CLOCK_HZ
+            .div_exact(baud_rate)
+            .and_then(|divisor| u16::try_from(divisor).ok())
+            .map(|divisor| Self { divisor })
+    }
 }
 
 impl SerialPort {
@@ -24,19 +41,15 @@ impl SerialPort {
             received_data_available: false,
         });
 
-        let mut line_controls = LineControls {
+        self.write_register::<LineControlRegister>(LineControls {
             data_bits: DataBits::Bits8,
             parity_bits: ParityBits::None,
             stop_bits: StopBits::Bits1,
-            divisor_latch_access_enabled: true,
+            divisor_latch_access_enabled: false,
             break_enabled: false,
-        };
+        });
 
-        self.write_register::<LineControlRegister>(line_controls);
-        self.set_baud_rate(38_400);
-
-        line_controls.divisor_latch_access_enabled = false;
-        self.write_register::<LineControlRegister>(line_controls);
+        self.set_baud_rate(BaudRate::new(38_400).unwrap());
 
         self.write_register::<ModemControlRegister>(ModemControls {
             data_terminal_ready: true,
@@ -51,12 +64,18 @@ impl SerialPort {
         self.write_register::<DataRegister>(byte);
     }
 
-    fn set_baud_rate(&mut self, baud_rate: u16) {
-        let low_byte = (baud_rate & 0xff) as u8;
-        let high_byte = (baud_rate >> 8) as u8;
+    pub fn set_baud_rate(&mut self, baud_rate: BaudRate) {
+        let mut line_controls = self.read_register::<LineControlRegister>();
+        line_controls.divisor_latch_access_enabled = true;
 
-        self.write_register::<BaudRateRegisterLow>(low_byte);
-        self.write_register::<BaudRateRegisterHigh>(high_byte);
+        let low_byte = (baud_rate.divisor & 0xff) as u8;
+        let high_byte = (baud_rate.divisor >> 8) as u8;
+
+        self.write_register::<DivisorLatchRegisterLow>(low_byte);
+        self.write_register::<DivisorLatchRegistorHigh>(high_byte);
+
+        line_controls.divisor_latch_access_enabled = false;
+        self.write_register::<LineControlRegister>(line_controls);
     }
 
     fn write_register<R>(&mut self, value: R::Value)
@@ -78,6 +97,16 @@ impl SerialPort {
         let port = IoPort::<io::ModeRead>::new(self.base_port + R::PORT_OFFSET);
         let byte = unsafe { port.in_byte() };
         R::deserialize(byte)
+    }
+}
+
+impl Write for SerialPort {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        for c in s.bytes() {
+            self.write_byte(c);
+        }
+
+        Ok(())
     }
 }
 
@@ -124,8 +153,8 @@ macro_rules! raw_register {
 }
 
 raw_register!(DataRegister, 0);
-raw_register!(BaudRateRegisterLow, 0);
-raw_register!(BaudRateRegisterHigh, 1);
+raw_register!(DivisorLatchRegisterLow, 0);
+raw_register!(DivisorLatchRegistorHigh, 1);
 raw_register!(ScratchRegister, 7);
 
 struct InterruptEnableRegister;

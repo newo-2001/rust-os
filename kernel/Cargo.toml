@@ -17,6 +17,7 @@ bench = false
 [dependencies]
 num_enum = { version = "0.7.6", default-features = false }
 libkernel = { path = "../libkernel" }
+log = "0.4.34"
 
 [build-dependencies]
 cc = "1"
