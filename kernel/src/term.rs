@@ -29,12 +29,7 @@ impl Terminal {
             return;
         }
 
-        let vga_char = VgaChar {
-            char,
-            color: self.cursor_color,
-        };
-
-        vga::VGA_BUFFER.write(vga_char, self.cursor_pos);
+        self.write_raw(char);
         self.line_widths[usize::from(self.cursor_pos.y)] += 1;
 
         match self.cursor_pos.x {
@@ -62,12 +57,25 @@ impl Terminal {
         let line_width = &mut self.line_widths[usize::from(self.cursor_pos.y)];
         *line_width = line_width.saturating_sub(1);
 
-        let char = VgaChar {
+        self.write_raw(b' ');
+    }
+
+    pub fn clear(&mut self, color: VgaColor) {
+        let buffer = vga::VGA_BUFFER.lock();
+        buffer.fill(VgaChar {
             char: b' ',
+            color: VgaTextColor::new(VgaColor::White, color),
+        });
+    }
+
+    fn write_raw(&mut self, char: u8) {
+        let char = VgaChar {
+            char,
             color: self.cursor_color,
         };
 
-        vga::VGA_BUFFER.write(char, self.cursor_pos);
+        let buffer = vga::VGA_BUFFER.lock();
+        buffer.write(char, self.cursor_pos);
     }
 }
 

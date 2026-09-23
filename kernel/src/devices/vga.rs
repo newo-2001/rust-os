@@ -1,10 +1,11 @@
+use libkernel::sync::SpinLock;
 use num_enum::TryFromPrimitive;
 
 pub const BUFFER_WIDTH: usize = 80;
 pub const BUFFER_HEIGHT: usize = 25;
 const VGA_BUFFER_PTR: *mut VgaChar = 0xb8000 as _;
 
-pub static VGA_BUFFER: VgaBuffer = VgaBuffer { _private: () };
+pub static VGA_BUFFER: SpinLock<VgaBuffer> = SpinLock::new(VgaBuffer { _private: () });
 
 #[derive(Clone, Copy)]
 #[repr(C)]
@@ -55,6 +56,14 @@ impl VgaBuffer {
             let cell = VGA_BUFFER_PTR.add(offset);
             cell.write_volatile(char);
         }
+    }
+
+    pub fn fill(&self, char: VgaChar) {
+        const BUFFER_SIZE: usize = BUFFER_WIDTH * BUFFER_HEIGHT;
+        let buffer =
+            unsafe { &mut *core::ptr::slice_from_raw_parts_mut(VGA_BUFFER_PTR, BUFFER_SIZE) };
+
+        buffer.fill(char);
     }
 }
 

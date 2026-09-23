@@ -5,7 +5,7 @@
 use core::panic::PanicInfo;
 use core::{arch::asm, fmt::Write};
 
-use log::{info, trace};
+use log::{error, info, trace};
 
 use crate::devices::keyboard::{KeyAction, KeyCode, KeyEvent};
 use crate::{
@@ -90,6 +90,25 @@ fn handle_key_event(event: KeyEvent, term: &mut Terminal) {
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    let mut term = Terminal::new();
+    term.clear(VgaColor::Blue);
+    term.cursor_color = VgaTextColor::new(VgaColor::White, VgaColor::Blue);
+
+    let args = if let Some(location) = info.location() {
+        format_args!(
+            "Panic! at {} line {}:{}\n{}",
+            location.file(),
+            location.line(),
+            location.column(),
+            info.message()
+        )
+    } else {
+        format_args!("Panic! {}", info.message())
+    };
+
+    error!("{args}");
+    writeln!(term, "{args}");
+
     loop {}
 }
