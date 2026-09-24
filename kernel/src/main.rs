@@ -22,6 +22,7 @@ mod idt;
 mod interrupts;
 mod io;
 mod logger;
+mod mem;
 mod term;
 
 #[unsafe(no_mangle)]
@@ -34,6 +35,12 @@ pub extern "C" fn kernel_main() -> ! {
     log::set_logger(&logger::LOGGER).unwrap();
     log::set_max_level(log::LevelFilter::max());
     info!("Logger initialized, hello world!");
+
+    {
+        let page_directory = unsafe { &mut (*&raw mut mem::pagetable::PAGE_DIRECTORY) };
+        page_directory.initialize();
+        page_directory.load();
+    }
 
     let mut term = Terminal::new();
 
@@ -91,10 +98,6 @@ fn handle_key_event(event: KeyEvent, term: &mut Terminal) {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    let mut term = Terminal::new();
-    term.clear(VgaColor::Blue);
-    term.cursor_color = VgaTextColor::new(VgaColor::White, VgaColor::Blue);
-
     let args = if let Some(location) = info.location() {
         format_args!(
             "Panic! at {} line {}:{}\n{}",
@@ -108,6 +111,11 @@ fn panic(info: &PanicInfo) -> ! {
     };
 
     error!("{args}");
+
+    let mut term = Terminal::new();
+    term.clear(VgaColor::Blue);
+    term.cursor_color = VgaTextColor::new(VgaColor::White, VgaColor::Blue);
+
     writeln!(term, "{args}");
 
     loop {}

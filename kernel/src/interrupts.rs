@@ -11,6 +11,10 @@ pub extern "x86-interrupt" fn keyboard_interrupt_handler(_frame: &InterruptStack
     unsafe { MASTER_COMMAND_PORT.out_byte(END_OF_INTERRUPT) }
 }
 
+pub extern "x86-interrupt" fn double_fault_handler(_frame: &InterruptStackFrame) {
+    panic!("Double fault!");
+}
+
 #[repr(C)]
 pub struct InterruptStackFrame {
     _private: (),

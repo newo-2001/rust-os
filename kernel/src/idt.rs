@@ -4,7 +4,8 @@ use log::trace;
 
 use crate::{
     gdt::{self, PrivilegeLevel},
-    interrupts::{InterruptHandler, keyboard_interrupt_handler},
+    interrupts::{InterruptHandler, double_fault_handler, keyboard_interrupt_handler},
+    mem::pagetable::page_fault_handler,
 };
 
 type Idt = [IdtEntry; 256];
@@ -13,16 +14,28 @@ type Idt = [IdtEntry; 256];
 static mut INTERRUPT_DESCRIPTOR_TABLE: Idt = [IdtEntry(0); 256];
 
 pub fn load() {
+    let attributes = TypeAttributes {
+        gate_type: GateType::InterruptGate32,
+        privilege_level: PrivilegeLevel::Kernel,
+    };
+
+    let double_fault_vector =
+        IdtEntry::new(double_fault_handler, gdt::KERNEL_CODE_SELECTOR, attributes);
+
+    let page_fault_vector =
+        IdtEntry::new(page_fault_handler, gdt::KERNEL_CODE_SELECTOR, attributes);
+
     let keyboard_interrupt_vector = IdtEntry::new(
         keyboard_interrupt_handler,
         gdt::KERNEL_CODE_SELECTOR,
-        TypeAttributes {
-            gate_type: GateType::InterruptGate32,
-            privilege_level: PrivilegeLevel::Kernel,
-        },
+        attributes,
     );
 
-    unsafe { INTERRUPT_DESCRIPTOR_TABLE[33] = keyboard_interrupt_vector };
+    unsafe {
+        INTERRUPT_DESCRIPTOR_TABLE[8] = double_fault_vector;
+        INTERRUPT_DESCRIPTOR_TABLE[14] = page_fault_vector;
+        INTERRUPT_DESCRIPTOR_TABLE[33] = keyboard_interrupt_vector;
+    };
 
     let pointer = IdtPointer {
         limit: (core::mem::size_of::<Idt>() - 1) as u16,
