@@ -7,6 +7,7 @@ pub const KERNEL_DATA_SELECTOR: u16 = 2 << 3;
 
 pub fn load() {
     let pointer = GdtPointer {
+        #[expect(clippy::cast_possible_truncation)]
         limit: (core::mem::size_of_val(&GLOBAL_DESCRIPTOR_TABLE) - 1) as u16,
         base: GLOBAL_DESCRIPTOR_TABLE.as_ptr() as u32,
     };
@@ -31,7 +32,7 @@ pub fn load() {
             "mov gs, ax",
             "mov ss, ax",
 
-            pointer = in(reg) &pointer,
+            pointer = in(reg) &raw const pointer,
             code = const KERNEL_CODE_SELECTOR,
             data = const KERNEL_DATA_SELECTOR,
             lateout("eax") _,
@@ -39,19 +40,6 @@ pub fn load() {
     }
 
     trace!("GDT loaded");
-}
-
-pub fn read() -> GdtPointer {
-    let mut gdt = GdtPointer { limit: 0, base: 0 };
-
-    unsafe {
-        asm!(
-            "sgdt [{gdt_out}]",
-            gdt_out = in(reg) &mut gdt
-        )
-    }
-
-    gdt
 }
 
 #[unsafe(no_mangle)]
@@ -188,7 +176,7 @@ struct Flags {
 
 impl Flags {
     const fn flag_bits(self) -> u8 {
-        let reserved_bit = 0u8 << 0;
+        let reserved_bit = 0u8;
         let long_mode_bit = 0u8 << 1;
         let size_bit = (self.size as u8) << 2;
         let granularity_bit = (self.granularity as u8) << 3;
@@ -218,7 +206,7 @@ impl GdtEntry {
         let access_byte = u64::from(access.access_byte());
         let flag_bits = u64::from(flags.flag_bits());
 
-        let value = (limit_low << 0)
+        let value = limit_low
             | (base_low << 16)
             | (base_mid << 32)
             | (access_byte << 40)

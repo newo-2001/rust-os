@@ -47,31 +47,20 @@ pub fn load() {
     };
 
     let pointer = IdtPointer {
+        #[expect(clippy::cast_possible_truncation)]
         limit: (core::mem::size_of::<Idt>() - 1) as u16,
+        #[expect(clippy::ptr_as_ptr)]
         base: (&raw const INTERRUPT_DESCRIPTOR_TABLE) as *const _ as u32,
     };
 
     unsafe {
         asm!(
             "lidt [{pointer}]",
-            pointer = in(reg) &pointer
-        )
+            pointer = in(reg) &raw const pointer
+        );
     }
 
-    trace!("IDT loaded")
-}
-
-pub fn read() -> IdtPointer {
-    let mut idt = IdtPointer { limit: 0, base: 0 };
-
-    unsafe {
-        asm!(
-            "sidt [{idt_out}]",
-            idt_out = in(reg) &mut idt
-        )
-    }
-
-    idt
+    trace!("IDT loaded");
 }
 
 #[repr(C, packed)]
@@ -95,15 +84,11 @@ impl IdtEntry {
         let offset_low = offset & 0xffff;
         let offset_high = (offset >> 16) & 0xffff;
 
-        let reserved = 0u64 << 0;
         let segment_selector = u64::from(segment_selector);
         let attribute_bits = u64::from(type_attributes.bits());
 
-        let value = (offset_low << 0)
-            | (segment_selector << 16)
-            | (reserved << 32)
-            | (attribute_bits << 40)
-            | (offset_high << 48);
+        let value =
+            offset_low | (segment_selector << 16) | (attribute_bits << 40) | (offset_high << 48);
 
         Self(value)
     }
@@ -117,7 +102,7 @@ struct TypeAttributes {
 
 impl TypeAttributes {
     const fn bits(self) -> u8 {
-        let gate_type = (self.gate_type as u8) << 0;
+        let gate_type = self.gate_type as u8;
         let zero_bit = 0u8 << 4;
         let privilege_bits = (self.privilege_level as u8) << 5;
         let present_bit = 1u8 << 7;

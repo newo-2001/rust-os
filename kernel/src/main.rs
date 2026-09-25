@@ -23,11 +23,12 @@ mod logger;
 mod mem;
 mod term;
 
+#[expect(clippy::missing_panics_doc)]
 #[unsafe(no_mangle)]
 pub extern "C" fn kernel_main() -> ! {
     {
         let mut com1 = devices::serial::COM1.lock();
-        com1.initialize()
+        com1.initialize();
     }
 
     log::set_logger(&logger::LOGGER).unwrap();
@@ -44,8 +45,8 @@ pub extern "C" fn kernel_main() -> ! {
 
     let master_mask = unsafe { pic::MASTER_DATA_PORT.in_byte() };
     let slave_mask = unsafe { pic::SLAVE_DATA_PORT.in_byte() };
-    writeln!(term, "Master PIC mask: {:#010b}", master_mask).unwrap();
-    writeln!(term, "Slave PIC mask: {:#010b}", slave_mask).unwrap();
+    writeln!(term, "Master PIC mask: {master_mask:#010b}").unwrap();
+    writeln!(term, "Slave PIC mask: {slave_mask:#010b}").unwrap();
 
     // Enable interrupts
     unsafe {
@@ -69,15 +70,18 @@ fn handle_key_event(event: KeyEvent, term: &mut Terminal) {
 
     match event.key_code {
         KeyCode::KeyBackspace => term.delete_char(),
-        key_code => match devices::keyboard::key_code_to_ascii(key_code) {
-            Some(ascii_char) => term.write_char(ascii_char),
-            None => {}
-        },
+        key_code => {
+            if let Some(ascii_char) = devices::keyboard::key_code_to_ascii(key_code) {
+                term.write_char(ascii_char);
+            }
+        }
     }
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    // We can't use Option::map_or_else, because format_args! borrows a temporary
+    #[expect(clippy::option_if_let_else)]
     let args = if let Some(location) = info.location() {
         format_args!(
             "Panic! at {} line {}:{}\n{}",
@@ -92,11 +96,11 @@ fn panic(info: &PanicInfo) -> ! {
 
     error!("{args}");
 
+    Terminal::clear(VgaColor::Blue);
     let mut term = Terminal::new();
-    term.clear(VgaColor::Blue);
     term.cursor_color = VgaTextColor::new(VgaColor::White, VgaColor::Blue);
 
-    writeln!(term, "{args}");
+    writeln!(term, "{args}").unwrap();
 
     loop {}
 }

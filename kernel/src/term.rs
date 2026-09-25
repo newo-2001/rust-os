@@ -10,10 +10,10 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    const MAX_X: u8 = vga::BUFFER_WIDTH as u8 - 1;
-    const MAX_Y: u8 = vga::BUFFER_HEIGHT as u8 - 1;
+    const MAX_X: u8 = vga::BUFFER_WIDTH - 1;
+    const MAX_Y: u8 = vga::BUFFER_HEIGHT - 1;
 
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             cursor_pos: VgaPos { x: 0, y: 0 },
             cursor_color: VgaTextColor::new(VgaColor::Gray, VgaColor::Black),
@@ -35,10 +35,10 @@ impl Terminal {
         match self.cursor_pos.x {
             Self::MAX_X => self.newline(),
             x => self.cursor_pos.x = x + 1,
-        };
+        }
     }
 
-    fn newline(&mut self) {
+    const fn newline(&mut self) {
         self.cursor_pos.x = 0;
         self.cursor_pos.y = match self.cursor_pos.y {
             Self::MAX_Y => 0,
@@ -60,7 +60,7 @@ impl Terminal {
         self.write_raw(b' ');
     }
 
-    pub fn clear(&mut self, color: VgaColor) {
+    pub fn clear(color: VgaColor) {
         let buffer = vga::VGA_BUFFER.lock();
         buffer.fill(VgaChar {
             char: b' ',
@@ -68,7 +68,7 @@ impl Terminal {
         });
     }
 
-    fn write_raw(&mut self, char: u8) {
+    fn write_raw(&self, char: u8) {
         let char = VgaChar {
             char,
             color: self.cursor_color,

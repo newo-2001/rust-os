@@ -20,7 +20,7 @@ unsafe fn out_byte(port: u16, value: u8) {
             "out dx, al",
             in("dx") port,
             in("al") value
-        )
+        );
     }
 }
 

@@ -1,4 +1,10 @@
 {
     "rust-analyzer.checkOnSave": true,
-    "rust-analyzer.check.command": "clippy"
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.check.allTargets": false,
+    "rust-analyzer.cargo.target": "kernel/i686-unknown-none.json",
+    "rust-analyzer.check.extraArgs": [
+        "-Zbuild-std=core,compiler_builtins",
+        "-Zbuild-std-features=compiler-builtins-mem"
+    ]
 }

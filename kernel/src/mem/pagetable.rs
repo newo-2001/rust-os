@@ -16,6 +16,7 @@ static KERNEL_PAGE_TABLE: PageTable = PageTable {
         let mut i: usize = 0;
 
         while i < 1024 {
+            #[expect(clippy::cast_possible_truncation)]
             let page_start_physical = (i as u32) * 4096;
             page_table[i] = PageTableEntry::new(
                 page_start_physical,
@@ -31,6 +32,7 @@ static KERNEL_PAGE_TABLE: PageTable = PageTable {
 
 #[repr(align(4096))]
 pub struct PageDirectory {
+    #[expect(unused)]
     table: [PageDirectoryEntry; 1024],
 }
 
@@ -39,6 +41,7 @@ pub struct PageDirectory {
 pub struct PageDirectoryEntry(u32);
 
 impl PageDirectoryEntry {
+    #[expect(unused)]
     pub const fn new(
         physical_base_address: u32,
         access_mode: AccessMode,
@@ -51,7 +54,7 @@ impl PageDirectoryEntry {
         let page_size = PageSize::PageTable;
         let CacheModeBits { pcd, pwt } = CacheMode::Disabled.bits();
 
-        let value = (u32::from(present) << 0)
+        let value = u32::from(present)
             | ((access_mode as u32) << 1)
             | ((privilege_level as u32) << 2)
             | (u32::from(pwt) << 3)
@@ -65,6 +68,7 @@ impl PageDirectoryEntry {
 
 #[repr(align(4096))]
 pub struct PageTable {
+    #[expect(unused)]
     table: [PageTableEntry; 1024],
 }
 
@@ -83,7 +87,7 @@ impl PageTableEntry {
         let present = true;
         let CacheModeBits { pcd, pwt } = CacheMode::Disabled.bits();
 
-        let value = (u32::from(present) << 0)
+        let value = u32::from(present)
             | ((access_mode as u32) << 1)
             | ((privilege_level as u32) << 2)
             | (u32::from(pwt) << 3)
@@ -96,6 +100,7 @@ impl PageTableEntry {
 
 #[derive(Clone, Copy)]
 pub enum AccessMode {
+    #[expect(unused)]
     ReadOnly = 0,
     ReadWrite = 1,
 }
@@ -103,13 +108,16 @@ pub enum AccessMode {
 #[derive(Clone, Copy)]
 pub enum PrivilegeLevel {
     Supervisor = 0,
+    #[expect(unused)]
     User = 1,
 }
 
 #[derive(Clone, Copy)]
 enum CacheMode {
     Disabled,
+    #[expect(unused)]
     WriteThrough,
+    #[expect(unused)]
     WriteBack,
 }
 
@@ -122,15 +130,15 @@ struct CacheModeBits {
 impl CacheMode {
     const fn bits(self) -> CacheModeBits {
         match self {
-            CacheMode::Disabled => CacheModeBits {
+            Self::Disabled => CacheModeBits {
                 pcd: false,
                 pwt: false,
             },
-            CacheMode::WriteBack => CacheModeBits {
+            Self::WriteBack => CacheModeBits {
                 pcd: true,
                 pwt: false,
             },
-            CacheMode::WriteThrough => CacheModeBits {
+            Self::WriteThrough => CacheModeBits {
                 pcd: true,
                 pwt: true,
             },
@@ -141,6 +149,7 @@ impl CacheMode {
 #[derive(Clone, Copy)]
 enum PageSize {
     PageTable = 0,
+    #[expect(unused)]
     Mb2 = 1,
 }
 
@@ -178,6 +187,7 @@ impl PageFaultErrorCode {
             );
         }
 
+        #[allow(clippy::cast_possible_truncation)]
         let flags = error_code as u8;
 
         Self {

@@ -11,6 +11,7 @@ pub struct SerialPort {
     base_port: u16,
 }
 
+#[derive(Clone, Copy)]
 pub struct BaudRate {
     divisor: u16,
 }
@@ -78,6 +79,8 @@ impl SerialPort {
         self.write_register::<LineControlRegister>(line_controls);
     }
 
+    // We take &mut self to represent that this induces an external side-effect
+    #[expect(clippy::needless_pass_by_ref_mut)]
     fn write_register<R>(&mut self, value: R::Value)
     where
         R: WriteRegister,
@@ -128,6 +131,7 @@ trait WriteRegister: Register {
 
 macro_rules! raw_register {
     ($type:ident, $port_offset:literal) => {
+        #[allow(unused)]
         struct $type;
 
         impl Register for $type {
@@ -176,10 +180,10 @@ impl ReadRegister for InterruptEnableRegister {
 
     fn deserialize(value: u8) -> Self::Value {
         EnabledInterrupts {
-            modem_status: ((value >> 3) & 1) == 1,
-            receiver_line_status: ((value >> 2) & 1) == 1,
-            transmitter_holding_register_empty: ((value >> 1) & 1) == 1,
-            received_data_available: ((value >> 0) & 1) == 1,
+            modem_status: (value >> 3) & 1 == 1,
+            receiver_line_status: (value >> 2) & 1 == 1,
+            transmitter_holding_register_empty: (value >> 1) & 1 == 1,
+            received_data_available: value & 1 == 1,
         }
     }
 }
@@ -191,10 +195,11 @@ impl WriteRegister for InterruptEnableRegister {
         u8::from(value.modem_status) << 3
             | u8::from(value.receiver_line_status) << 2
             | u8::from(value.transmitter_holding_register_empty) << 1
-            | u8::from(value.received_data_available) << 0
+            | u8::from(value.received_data_available)
     }
 }
 
+#[expect(unused)]
 struct FifoControlRegister;
 
 impl Register for FifoControlRegister {
@@ -203,6 +208,7 @@ impl Register for FifoControlRegister {
 
 // DESIGN: interrupt_trigger_level is only applicable if enable_fifos is set.
 // Ideally the type system would enforce this
+#[expect(unused)]
 #[derive(Clone, Copy)]
 struct FifoControls {
     pub enable_fifos: bool,
@@ -210,6 +216,7 @@ struct FifoControls {
     pub clear_buffers: ClearBufferOptions,
 }
 
+#[expect(unused)]
 #[derive(Clone, Copy)]
 enum InterruptTriggerLevel {
     Bytes1 = 0,
@@ -218,6 +225,7 @@ enum InterruptTriggerLevel {
     Bytes14 = 3,
 }
 
+#[expect(unused)]
 #[derive(Clone, Copy)]
 enum ClearBufferOptions {
     None = 0,
@@ -230,18 +238,20 @@ impl WriteRegister for FifoControlRegister {
     type Value = FifoControls;
 
     fn serialize(value: Self::Value) -> u8 {
-        u8::from(value.enable_fifos) << 0
+        u8::from(value.enable_fifos)
             | (value.clear_buffers as u8) << 1
             | (value.interrupt_trigger_level as u8) << 6
     }
 }
 
+#[expect(unused)]
 struct InterruptIdentificationRegister;
 
 impl Register for InterruptIdentificationRegister {
     const PORT_OFFSET: u16 = 2;
 }
 
+#[expect(unused)]
 #[derive(Clone, Copy)]
 struct InterruptIdentification {
     pub interrupt_pending: bool,
@@ -325,7 +335,7 @@ impl WriteRegister for LineControlRegister {
     type Value = LineControls;
 
     fn serialize(value: Self::Value) -> u8 {
-        (value.data_bits as u8) << 0
+        (value.data_bits as u8)
             | (value.stop_bits as u8) << 2
             | (value.parity_bits as u8) << 3
             | u8::from(value.break_enabled) << 6
@@ -366,7 +376,7 @@ impl WriteRegister for ModemControlRegister {
     type Value = ModemControls;
 
     fn serialize(value: Self::Value) -> u8 {
-        u8::from(value.data_terminal_ready) << 0
+        u8::from(value.data_terminal_ready)
             | u8::from(value.request_to_send) << 1
             | u8::from(value.out_1) << 2
             | u8::from(value.out_2) << 3
@@ -379,7 +389,7 @@ impl ReadRegister for ModemControlRegister {
 
     fn deserialize(byte: u8) -> Self::Value {
         ModemControls {
-            data_terminal_ready: (byte >> 0) & 1 == 1,
+            data_terminal_ready: byte & 1 == 1,
             request_to_send: (byte >> 1) & 1 == 1,
             out_1: (byte >> 2) & 1 == 1,
             out_2: (byte >> 3) & 1 == 1,

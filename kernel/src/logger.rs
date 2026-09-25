@@ -13,13 +13,14 @@ impl Log for SerialLogger {
 
     fn log(&self, record: &log::Record) {
         let mut serial = crate::devices::serial::COM1.lock();
-        write!(
+        writeln!(
             serial,
-            "[{:<5}] ({}) {}\n",
+            "[{:<5}] ({}) {}",
             record.level(),
             record.target(),
             record.args()
-        );
+        )
+        .unwrap();
     }
 
     fn flush(&self) {}
