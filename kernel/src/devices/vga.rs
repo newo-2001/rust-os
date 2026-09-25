@@ -3,7 +3,7 @@ use num_enum::TryFromPrimitive;
 
 pub const BUFFER_WIDTH: usize = 80;
 pub const BUFFER_HEIGHT: usize = 25;
-const VGA_BUFFER_PTR: *mut VgaChar = 0xb8000 as _;
+const VGA_BUFFER_PTR: *mut VgaChar = 0xc00b_8000u32 as _;
 
 pub static VGA_BUFFER: SpinLock<VgaBuffer> = SpinLock::new(VgaBuffer { _private: () });
 

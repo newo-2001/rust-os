@@ -16,13 +16,8 @@ pub fn load() {
             // Load our global descriptor table
             "lgdt [{pointer}]",
 
-            // Obtain the address of the continuation label
-            "call 2f",
-            "2:",
-            "pop eax",
-            "add eax, 3 -1b",
-
             // Perform long jump into kernel code segment
+            "lea eax, [3f]",
             "push {code}",
             "push eax",
             "retf",
@@ -38,7 +33,8 @@ pub fn load() {
 
             pointer = in(reg) &pointer,
             code = const KERNEL_CODE_SELECTOR,
-            data = const KERNEL_DATA_SELECTOR
+            data = const KERNEL_DATA_SELECTOR,
+            lateout("eax") _,
         );
     }
 

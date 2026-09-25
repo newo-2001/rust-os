@@ -1,7 +1,12 @@
 use std::{env, fs, path::Path};
 
 fn main() {
-    cc::Build::new().file("src/boot.S").compile("boot");
+    cc::Build::new()
+        .file("src/boot.S")
+        .flag("-m32")
+        .compile("boot");
+
+    println!("cargo:rerun-if-changed=src/boot.S");
 
     {
         let out_dir = env::var("OUT_DIR").unwrap();

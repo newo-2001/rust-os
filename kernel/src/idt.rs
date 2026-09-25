@@ -4,7 +4,10 @@ use log::trace;
 
 use crate::{
     gdt::{self, PrivilegeLevel},
-    interrupts::{InterruptHandler, double_fault_handler, keyboard_interrupt_handler},
+    interrupts::{
+        ErrorCodeInterruptHandler, InterruptHandler, RegularInterruptHandler, double_fault_handler,
+        keyboard_interrupt_handler,
+    },
     mem::pagetable::page_fault_handler,
 };
 
@@ -19,14 +22,20 @@ pub fn load() {
         privilege_level: PrivilegeLevel::Kernel,
     };
 
-    let double_fault_vector =
-        IdtEntry::new(double_fault_handler, gdt::KERNEL_CODE_SELECTOR, attributes);
+    let double_fault_vector = IdtEntry::new(
+        double_fault_handler as RegularInterruptHandler,
+        gdt::KERNEL_CODE_SELECTOR,
+        attributes,
+    );
 
-    let page_fault_vector =
-        IdtEntry::new(page_fault_handler, gdt::KERNEL_CODE_SELECTOR, attributes);
+    let page_fault_vector = IdtEntry::new(
+        page_fault_handler as ErrorCodeInterruptHandler,
+        gdt::KERNEL_CODE_SELECTOR,
+        attributes,
+    );
 
     let keyboard_interrupt_vector = IdtEntry::new(
-        keyboard_interrupt_handler,
+        keyboard_interrupt_handler as RegularInterruptHandler,
         gdt::KERNEL_CODE_SELECTOR,
         attributes,
     );
@@ -78,11 +87,11 @@ struct IdtEntry(u64);
 
 impl IdtEntry {
     fn new(
-        handler: InterruptHandler,
+        handler: impl InterruptHandler,
         segment_selector: u16,
         type_attributes: TypeAttributes,
     ) -> Self {
-        let offset = handler as *const () as u64;
+        let offset = u64::from(handler.address());
         let offset_low = offset & 0xffff;
         let offset_high = (offset >> 16) & 0xffff;
 

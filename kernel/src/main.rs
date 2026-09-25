@@ -14,8 +14,6 @@ use crate::{
     term::Terminal,
 };
 
-use crate::{gdt::GdtPointer, idt::IdtPointer};
-
 mod devices;
 mod gdt;
 mod idt;
@@ -36,29 +34,11 @@ pub extern "C" fn kernel_main() -> ! {
     log::set_max_level(log::LevelFilter::max());
     info!("Logger initialized, hello world!");
 
-    {
-        let page_directory = unsafe { &mut (*&raw mut mem::pagetable::PAGE_DIRECTORY) };
-        page_directory.initialize();
-        page_directory.load();
-    }
-
     let mut term = Terminal::new();
-
     writeln!(term, "Hello world!").unwrap();
 
     gdt::load();
-
-    {
-        let GdtPointer { base, limit } = gdt::read();
-        writeln!(term, "GDT (base: {base}, limit: {limit})").unwrap();
-    }
-
     idt::load();
-
-    {
-        let IdtPointer { base, limit } = idt::read();
-        writeln!(term, "IDT (base: {base}, limit: {limit})").unwrap();
-    }
 
     pic::initialize();
 
