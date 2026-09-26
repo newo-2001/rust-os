@@ -10,6 +10,9 @@ use thiserror::Error;
 /// Violating this assumption can lead to UB.
 /// It uses interior mutability to be lock-free.
 ///
+/// This is especially useful for interrupt handlers to communicate with the main thread,
+/// as attempting to acquire a mutex in the handler could potentially result in a deadlock
+///
 /// `N` is the capacity of the buffer, this is 1 less than max items it can store,
 /// it needs one empty slot, meaning a buffer with `N = 2` can only store 1 item.
 /// This is a limitation of const generics.
@@ -126,6 +129,10 @@ impl<T, const N: usize> SpscQueue<T, N> {
 
         read == write
     }
+
+    pub fn is_full(&self) -> bool {
+        self.len() == N - 1
+    }
 }
 
 impl<T, const N: usize> Default for SpscQueue<T, N> {
@@ -170,6 +177,23 @@ mod tests {
 
         buffer.push_back(1).unwrap();
         assert_eq!(Err(BufferFullError(1)), buffer.push_back(2));
+    }
+
+    #[test]
+    fn full_buffer_is_full() {
+        let buffer = SpscQueue::<u32, 2>::new();
+        buffer.push_back(1).unwrap();
+
+        assert!(buffer.is_full());
+        assert!(!buffer.is_empty());
+    }
+
+    #[test]
+    fn empty_buffer_is_empty() {
+        let buffer = SpscQueue::<u32, 2>::new();
+
+        assert!(buffer.is_empty());
+        assert!(!buffer.is_full());
     }
 
     #[test]

@@ -17,6 +17,7 @@ pub struct BaudRate {
 }
 
 impl BaudRate {
+    // DESIGN: Do we want to return Option here or perform best effort rounding?
     pub fn new(baud_rate: u32) -> Option<Self> {
         const UART_CLOCK_HZ: u32 = 115_200;
 
@@ -73,7 +74,7 @@ impl SerialPort {
         let high_byte = (baud_rate.divisor >> 8) as u8;
 
         self.write_register::<DivisorLatchRegisterLow>(low_byte);
-        self.write_register::<DivisorLatchRegistorHigh>(high_byte);
+        self.write_register::<DivisorLatchRegisterHigh>(high_byte);
 
         line_controls.divisor_latch_access_enabled = false;
         self.write_register::<LineControlRegister>(line_controls);
@@ -158,7 +159,7 @@ macro_rules! raw_register {
 
 raw_register!(DataRegister, 0);
 raw_register!(DivisorLatchRegisterLow, 0);
-raw_register!(DivisorLatchRegistorHigh, 1);
+raw_register!(DivisorLatchRegisterHigh, 1);
 raw_register!(ScratchRegister, 7);
 
 struct InterruptEnableRegister;

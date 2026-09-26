@@ -59,14 +59,14 @@ _start:
     .set KERNEL_PAGE_DIR_FLAGS, PRESENT_BIT | READ_WRITE_BIT | PERMISSION_BIT | PAGE_SIZE_BIT
     or ebx, KERNEL_PAGE_DIR_FLAGS
 
-    # We move the kernel page table into PAGE_DIRECTORY[0]
+    # We move the kernel page table into PAGE_DIRECTORY[0].
     # We need this identity map until we have jumped to high memory
     # to avoid crashing as soon as we enable paging
     mov DWORD PTR [eax], ebx
 
     # We duplicate the kernel page table into the entry
     # that maps physical address 0xc00000000.
-    # We now have two virtual copies of the same physical kernel memory
+    # We now have two virtual copies of the same physical kernel memory.
     mov ecx, KERNEL_VIRTUAL_START >> 22
     shl ecx, 2 # Multiply by 4 (the page dir entry size)
     mov DWORD PTR [eax + ecx], ebx

@@ -1,4 +1,5 @@
 use libkernel::{datastructures::SpscQueue, sync::SpinLock};
+use log::warn;
 
 use crate::io::IoPort;
 
@@ -16,7 +17,7 @@ pub static KEYBOARD: Keyboard = Keyboard {
     port: IoPort::new(0x60),
     scancode_buffer: SpscQueue::new(),
     state: SpinLock::new(KeyboardState {
-        scancode_decoder: ScanCodeDecoder,
+        scancode_decoder: ScanCodeDecoder::new(),
     }),
 };
 
@@ -30,15 +31,16 @@ impl Keyboard {
     }
 
     pub fn poll_event(&self) -> Option<KeyEvent> {
+        if self.scancode_buffer.is_full() {
+            warn!("Scancode buffer was full, we may have dropped some");
+        }
+
         let scancode = self.scancode_buffer.pop_front()?;
 
         let mut lock = self.state.lock();
         let decoder = &mut lock.scancode_decoder;
 
-        match decoder.push_scancode(scancode) {
-            DecodeResult::Ok(event) => Some(event),
-            DecodeResult::Unrecognized | DecodeResult::Incomplete => None,
-        }
+        decoder.push_scancode(scancode)
     }
 }
 
@@ -48,37 +50,91 @@ pub struct KeyEvent {
     pub action: KeyAction,
 }
 
-#[derive(Clone, Copy)]
-enum DecodeResult {
-    Ok(KeyEvent),
-    Unrecognized,
-    Incomplete,
-}
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum KeyAction {
     Press,
     Release,
 }
 
-// This will eventually contain a statemachine,
-// but for now only single byte keycodes are decoded
-// so we don't need state yet.
-struct ScanCodeDecoder;
+struct ScanCodeDecoder {
+    state: DecodeState,
+}
+
+#[derive(Clone, Copy)]
+enum DecodeState {
+    Start,
+    TwoBytes,
+    PrintScreen(KeyAction, u8),
+    Pause(u8),
+}
+
+#[derive(Clone, Copy)]
+enum DecodeResult {
+    Ok(KeyCode, KeyAction),
+    Incomplete(DecodeState),
+    Unrecognized,
+}
 
 impl ScanCodeDecoder {
-    fn push_scancode(&mut self, scancode: u8) -> DecodeResult {
-        use KeyCode as KC;
+    const fn new() -> Self {
+        Self {
+            state: DecodeState::Start,
+        }
+    }
 
-        // NOTE: This is not necessarily true, but for the subset of supported keys this holds
-        let action = if scancode & (1 << 7) == (1 << 7) {
-            KeyAction::Release
-        } else {
-            KeyAction::Press
+    fn push_scancode(&mut self, scancode: u8) -> Option<KeyEvent> {
+        use DecodeResult as Result;
+        use DecodeState as State;
+
+        let result = match (self.state, scancode) {
+            (State::Start, 0xE0) => Result::Incomplete(State::TwoBytes),
+            (State::Start, 0xE1) => Result::Incomplete(State::Pause(1)),
+            (State::Start, scancode) => Self::decode_single_byte(scancode),
+            (State::TwoBytes, 0x2A) => Result::Incomplete(State::PrintScreen(KeyAction::Press, 2)),
+            (State::TwoBytes, 0xB7) => {
+                Result::Incomplete(State::PrintScreen(KeyAction::Release, 2))
+            }
+            (State::TwoBytes, scancode) => Self::decode_double_byte(scancode),
+            (State::Pause(1), 0x1D) => Result::Incomplete(State::Pause(2)),
+            (State::Pause(2), 0x45) => Result::Incomplete(State::Pause(3)),
+            (State::Pause(3), 0xE1) => Result::Incomplete(State::Pause(4)),
+            (State::Pause(4), 0x9D) => Result::Incomplete(State::Pause(5)),
+            (State::Pause(5), 0xC5) => Result::Ok(KeyCode::KeyPause, KeyAction::Press),
+            (State::PrintScreen(action, 2), 0xE0) => {
+                Result::Incomplete(State::PrintScreen(action, 3))
+            }
+            (State::PrintScreen(KeyAction::Press, 3), 0x37) => {
+                Result::Ok(KeyCode::KeyPrintScreen, KeyAction::Press)
+            }
+            (State::PrintScreen(KeyAction::Release, 3), 0xAA) => {
+                Result::Ok(KeyCode::KeyPrintScreen, KeyAction::Release)
+            }
+            _ => Result::Unrecognized,
         };
 
-        // TODO: Many physical keys are not yet mapped, i.e. numpad, media keys, arrows
-        let key_code = match scancode & (!(1 << 7)) {
+        match result {
+            DecodeResult::Ok(key_code, action) => {
+                self.state = DecodeState::Start;
+                Some(KeyEvent { key_code, action })
+            }
+            DecodeResult::Incomplete(state) => {
+                self.state = state;
+                None
+            }
+            DecodeResult::Unrecognized => {
+                self.state = DecodeState::Start;
+                None
+            }
+        }
+    }
+
+    fn decode_single_byte(scancode: u8) -> DecodeResult {
+        use KeyCode as KC;
+
+        let (action, lower_7_bits) = extract_action(scancode);
+
+        #[expect(clippy::match_same_arms)]
+        let key_code = match lower_7_bits {
             0x00 => return DecodeResult::Unrecognized,
             0x01 => KC::KeyEsc,
             0x02 => KC::Key1,
@@ -158,12 +214,47 @@ impl ScanCodeDecoder {
             0x80..=0xff => unreachable!(),
         };
 
-        let event = KeyEvent { key_code, action };
-        DecodeResult::Ok(event)
+        DecodeResult::Ok(key_code, action)
+    }
+
+    const fn decode_double_byte(scancode: u8) -> DecodeResult {
+        let (action, lower_7_bits) = extract_action(scancode);
+
+        let key_code = match lower_7_bits {
+            0x38 => KeyCode::KeyRightAlt,
+            0x47 => KeyCode::KeyHome,
+            0x48 => KeyCode::KeyArrowUp,
+            0x49 => KeyCode::KeyPageUp,
+            0x4b => KeyCode::KeyArrowLeft,
+            0x4d => KeyCode::KeyArrowRight,
+            0x4f => KeyCode::KeyEnd,
+            0x50 => KeyCode::KeyArrowDown,
+            0x51 => KeyCode::KeyPageDown,
+            0x52 => KeyCode::KeyInsert,
+            0x53 => KeyCode::KeyDelete,
+            0x5b => KeyCode::KeyLeftBoss,
+            0x5c => KeyCode::KeyRightBoss,
+            0x1d => KeyCode::KeyRightControl,
+
+            _ => return DecodeResult::Unrecognized,
+        };
+
+        DecodeResult::Ok(key_code, action)
     }
 }
 
-pub fn key_code_to_ascii(key_code: KeyCode) -> Option<u8> {
+const fn extract_action(scancode: u8) -> (KeyAction, u8) {
+    let action = if scancode >> 7 == 1 {
+        KeyAction::Release
+    } else {
+        KeyAction::Press
+    };
+
+    let lower_7_bits = scancode & !(1 << 7);
+    (action, lower_7_bits)
+}
+
+pub const fn key_code_to_ascii(key_code: KeyCode) -> Option<u8> {
     Some(match key_code {
         KeyCode::Key0 => b'0',
         KeyCode::Key1 => b'1',
@@ -296,7 +387,6 @@ pub enum KeyCode {
     KeyPrintScreen,
     KeyScrollLock,
     KeyPause,
-    KeyHelp,
     KeyHome,
     KeyPageUp,
     KeyDelete,
@@ -306,4 +396,5 @@ pub enum KeyCode {
     KeyArrowLeft,
     KeyArrowDown,
     KeyArrowRight,
+    KeyInsert,
 }
