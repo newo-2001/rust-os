@@ -37,10 +37,10 @@ impl SerialPort {
 
     pub fn initialize(&mut self) {
         self.write_register::<InterruptEnableRegister>(EnabledInterrupts {
-            modem_status: false,
-            receiver_line_status: false,
-            transmitter_holding_register_empty: false,
-            received_data_available: false,
+            modem_status: InterruptActive::Disabled,
+            receiver_line_status: InterruptActive::Disabled,
+            transmitter_holding_register_empty: InterruptActive::Disabled,
+            received_data_available: InterruptActive::Disabled,
         });
 
         self.write_register::<LineControlRegister>(LineControls {
@@ -54,11 +54,10 @@ impl SerialPort {
         self.set_baud_rate(BaudRate::new(38_400).unwrap());
 
         self.write_register::<ModemControlRegister>(ModemControls {
-            data_terminal_ready: true,
+            data_terminal_ready: Readiness::Ready,
             request_to_send: true,
-            out_1: true,
-            out_2: true,
-            loopback: false,
+            irq_enabled: true,
+            loopback_enabled: false,
         });
     }
 
@@ -170,10 +169,22 @@ impl Register for InterruptEnableRegister {
 
 #[derive(Clone, Copy)]
 struct EnabledInterrupts {
-    pub modem_status: bool,
-    pub receiver_line_status: bool,
-    pub transmitter_holding_register_empty: bool,
-    pub received_data_available: bool,
+    pub modem_status: InterruptActive,
+    pub receiver_line_status: InterruptActive,
+    pub transmitter_holding_register_empty: InterruptActive,
+    pub received_data_available: InterruptActive,
+}
+
+#[derive(Clone, Copy)]
+enum InterruptActive {
+    Disabled = 0,
+    Enabled = 1,
+}
+
+impl From<bool> for InterruptActive {
+    fn from(value: bool) -> Self {
+        if value { Self::Enabled } else { Self::Disabled }
+    }
 }
 
 impl ReadRegister for InterruptEnableRegister {
@@ -181,10 +192,10 @@ impl ReadRegister for InterruptEnableRegister {
 
     fn deserialize(value: u8) -> Self::Value {
         EnabledInterrupts {
-            modem_status: (value >> 3) & 1 == 1,
-            receiver_line_status: (value >> 2) & 1 == 1,
-            transmitter_holding_register_empty: (value >> 1) & 1 == 1,
-            received_data_available: value & 1 == 1,
+            modem_status: InterruptActive::from((value >> 3) & 1 == 1),
+            receiver_line_status: InterruptActive::from((value >> 2) & 1 == 1),
+            transmitter_holding_register_empty: InterruptActive::from((value >> 1) & 1 == 1),
+            received_data_available: InterruptActive::from(value & 1 == 1)
         }
     }
 }
@@ -193,10 +204,10 @@ impl WriteRegister for InterruptEnableRegister {
     type Value = EnabledInterrupts;
 
     fn serialize(value: Self::Value) -> u8 {
-        u8::from(value.modem_status) << 3
-            | u8::from(value.receiver_line_status) << 2
-            | u8::from(value.transmitter_holding_register_empty) << 1
-            | u8::from(value.received_data_available)
+        (value.modem_status as u8) << 3
+            | (value.receiver_line_status as u8) << 2
+            | (value.transmitter_holding_register_empty as u8) << 1
+            | (value.received_data_available as u8)
     }
 }
 
@@ -366,22 +377,32 @@ impl Register for ModemControlRegister {
 
 #[derive(Clone, Copy)]
 struct ModemControls {
-    pub data_terminal_ready: bool,
+    pub data_terminal_ready: Readiness,
     pub request_to_send: bool,
-    pub out_1: bool,
-    pub out_2: bool,
-    pub loopback: bool,
+    pub irq_enabled: bool,
+    pub loopback_enabled: bool,
+}
+
+#[derive(Clone, Copy)]
+enum Readiness {
+    NotReady = 0,
+    Ready = 1,
+}
+
+impl From<bool> for Readiness {
+    fn from(value: bool) -> Self {
+        if value { Self::Ready } else { Self::NotReady }
+    }
 }
 
 impl WriteRegister for ModemControlRegister {
     type Value = ModemControls;
 
     fn serialize(value: Self::Value) -> u8 {
-        u8::from(value.data_terminal_ready)
+        (value.data_terminal_ready as u8)
             | u8::from(value.request_to_send) << 1
-            | u8::from(value.out_1) << 2
-            | u8::from(value.out_2) << 3
-            | u8::from(value.loopback) << 4
+            | u8::from(value.irq_enabled) << 3
+            | u8::from(value.loopback_enabled) << 4
     }
 }
 
@@ -390,11 +411,10 @@ impl ReadRegister for ModemControlRegister {
 
     fn deserialize(byte: u8) -> Self::Value {
         ModemControls {
-            data_terminal_ready: byte & 1 == 1,
+            data_terminal_ready: Readiness::from(byte & 1 == 1),
             request_to_send: (byte >> 1) & 1 == 1,
-            out_1: (byte >> 2) & 1 == 1,
-            out_2: (byte >> 3) & 1 == 1,
-            loopback: (byte >> 4) & 1 == 1,
+            irq_enabled: (byte >> 3) & 1 == 1,
+            loopback_enabled: (byte >> 4) & 1 == 1,
         }
     }
 }
