@@ -3,7 +3,6 @@ target = "i686-unknown-none.json"
 
 [target.i686-unknown-none]
 runner = "./run.sh"
-rustflags = ["-C", "link-arg=-Tlinker.ld"]
 
 [unstable]
 json-target-spec = true
