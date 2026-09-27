@@ -1,5 +1,3 @@
-.intel_syntax noprefix
-
 .section .multiboot,"a"
 .align 8
 

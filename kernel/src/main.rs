@@ -3,7 +3,9 @@
 #![feature(const_trait_impl, const_convert, abi_x86_interrupt, exact_div)]
 
 use core::panic::PanicInfo;
-use core::{arch::asm, fmt::Write};
+use core::{arch::{asm, global_asm}, fmt::Write};
+
+global_asm!(include_str!("boot.asm"));
 
 use log::{error, info, trace};
 
