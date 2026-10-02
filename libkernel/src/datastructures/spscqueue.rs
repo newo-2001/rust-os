@@ -4,7 +4,7 @@ use core::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use thiserror::Error;
+use crate::datastructures::BufferFullError;
 
 /// An [`SpscQueue`] is a Single Producer Single Consumer queue.
 /// Violating this assumption can lead to UB.
@@ -21,10 +21,6 @@ pub struct SpscQueue<T, const N: usize> {
     read: AtomicUsize,
     write: AtomicUsize,
 }
-
-#[derive(Debug, Clone, Copy, Error, PartialEq, Eq)]
-#[error("Buffer was already full ({0} items)")]
-pub struct BufferFullError(usize);
 
 impl<T, const N: usize> SpscQueue<T, N> {
     /// Constructs a new [`SpscQueue`].

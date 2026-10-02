@@ -11,5 +11,6 @@
   "linker": "rust-lld",
   "executables": true,
   "disable-redzone": true,
+  "frame-pointer": "always",
   "panic-strategy": "abort"
 }

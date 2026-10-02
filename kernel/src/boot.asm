@@ -22,10 +22,12 @@ multiboot_header_end:
 .section .bss,"aw",@nobits
 .align 16
 
-stack:
+.global STACK_BOTTOM
+STACK_BOTTOM:
     .skip 16384
 
-stack_top:
+.global STACK_TOP
+STACK_TOP:
 
 .section .boot.text,"ax"
 .global _start
@@ -88,7 +90,8 @@ _start:
     mov DWORD PTR [eax], 0
 
     # Initialize the stack
-    mov esp, OFFSET stack_top
+    mov esp, OFFSET STACK_TOP
+    xor ebp, ebp
 
     # Call Rust
     mov ecx, OFFSET kernel_main

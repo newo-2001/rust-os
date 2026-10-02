@@ -5,10 +5,11 @@ use log::trace;
 use crate::{
     gdt::{self, PrivilegeLevel},
     interrupts::{
-        ErrorCodeInterruptHandler, InterruptHandler, RegularInterruptHandler, double_fault_handler,
+        ErrorCodeInterruptHandler, InterruptHandler, RegularInterruptHandler,
+        double_fault_handler,
         keyboard_interrupt_handler,
+        page_fault_handler
     },
-    mem::pagetable::page_fault_handler,
 };
 
 type Idt = [IdtEntry; 256];

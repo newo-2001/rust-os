@@ -6,7 +6,7 @@ pub struct Terminal {
     pub cursor_pos: VgaPos,
     pub cursor_color: VgaTextColor,
 
-    line_widths: [u8; Self::MAX_Y as usize],
+    line_widths: [u8; vga::BUFFER_HEIGHT as usize],
 }
 
 impl Terminal {
@@ -17,7 +17,7 @@ impl Terminal {
         Self {
             cursor_pos: VgaPos { x: 0, y: 0 },
             cursor_color: VgaTextColor::new(VgaColor::Gray, VgaColor::Black),
-            line_widths: [0; Self::MAX_Y as usize],
+            line_widths: [0; vga::BUFFER_HEIGHT as usize],
         }
     }
 
@@ -41,7 +41,10 @@ impl Terminal {
     const fn newline(&mut self) {
         self.cursor_pos.x = 0;
         self.cursor_pos.y = match self.cursor_pos.y {
-            Self::MAX_Y => 0,
+            Self::MAX_Y => {
+                self.line_widths[0] = 0;
+                0
+            },
             y => y + 1,
         };
     }

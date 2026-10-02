@@ -7,7 +7,7 @@ use core::{arch::{asm, global_asm}, fmt::Write};
 
 global_asm!(include_str!("boot.asm"));
 
-use log::{error, info, trace};
+use log::{info, trace};
 
 use crate::devices::keyboard::{KeyAction, KeyCode, KeyEvent};
 use crate::{
@@ -23,6 +23,7 @@ mod interrupts;
 mod io;
 mod logger;
 mod mem;
+mod panic;
 mod term;
 
 #[expect(clippy::missing_panics_doc)]
@@ -78,31 +79,4 @@ fn handle_key_event(event: KeyEvent, term: &mut Terminal) {
             }
         }
     }
-}
-
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    // We can't use Option::map_or_else, because format_args! borrows a temporary
-    #[expect(clippy::option_if_let_else)]
-    let args = if let Some(location) = info.location() {
-        format_args!(
-            "Panic! at {} line {}:{}\n{}",
-            location.file(),
-            location.line(),
-            location.column(),
-            info.message()
-        )
-    } else {
-        format_args!("Panic! {}", info.message())
-    };
-
-    error!("{args}");
-
-    Terminal::clear(VgaColor::Blue);
-    let mut term = Terminal::new();
-    term.cursor_color = VgaTextColor::new(VgaColor::White, VgaColor::Blue);
-
-    writeln!(term, "{args}").unwrap();
-
-    loop {}
 }

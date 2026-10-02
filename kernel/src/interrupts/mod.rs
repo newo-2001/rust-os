@@ -3,6 +3,10 @@ use crate::devices::{
     pic::{END_OF_INTERRUPT, MASTER_COMMAND_PORT},
 };
 
+mod pagefault;
+
+pub use pagefault::page_fault_handler;
+
 pub type RegularInterruptHandler = extern "x86-interrupt" fn(&InterruptStackFrame);
 pub type ErrorCodeInterruptHandler = extern "x86-interrupt" fn(&InterruptStackFrame, u32);
 
