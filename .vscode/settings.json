@@ -6,5 +6,8 @@
     "rust-analyzer.check.extraArgs": [
         "-Zbuild-std=core,compiler_builtins",
         "-Zbuild-std-features=compiler-builtins-mem"
-    ]
+    ],
+    "rust-analyzer.cargo.extraEnv": {
+        "CARGO_UNSTABLE_JSON_TARGET_SPEC": "true"
+    }
 }

@@ -2,15 +2,27 @@ use core::fmt::{Display, Pointer};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(transparent)]
-pub struct Address(u32);
+pub struct Address(usize);
 
 impl From<u32> for Address {
     fn from(value: u32) -> Self {
-        Self(value)
+        Self(value as usize)
     }
 }
 
 impl From<Address> for u32 {
+    fn from(value: Address) -> Self {
+        value.0 as u32
+    }
+}
+
+impl From<usize> for Address {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl From<Address> for usize {
     fn from(value: Address) -> Self {
         value.0
     }

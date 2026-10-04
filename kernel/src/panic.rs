@@ -1,15 +1,24 @@
+use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{arch::asm, panic::PanicInfo};
 use core::fmt::{Display, Write};
 
 use libkernel::datastructures::Stack;
 use log::error;
 
+use crate::interrupts::InterruptStackFrame;
 use crate::mem::Address;
 use crate::{devices::vga::{VgaColor, VgaTextColor}, term::Terminal};
 
 unsafe extern "C" {
     static STACK_BOTTOM: u8;
     static STACK_TOP: u8;
+}
+
+static INTERRUPT_EBP: AtomicUsize = AtomicUsize::new(0);
+
+pub fn record_interrupt_frame(frame: &InterruptStackFrame) {
+    let handler_ebp = core::ptr::from_ref(frame).addr() - core::mem::size_of::<u32>() * 2;
+    INTERRUPT_EBP.store(handler_ebp, Ordering::Relaxed);
 }
 
 struct StackTrace(Stack<Address, 20>);
@@ -29,6 +38,7 @@ fn stack_trace() -> StackTrace {
     let mut stack = Stack::new();
     let stack_bottom = (&raw const STACK_BOTTOM).addr();
     let stack_top = (&raw const STACK_TOP).addr();
+    let interrupt_ebp = INTERRUPT_EBP.load(Ordering::Relaxed);
 
     let mut ebp = core::ptr::null::<u32>();
     unsafe {
@@ -39,14 +49,33 @@ fn stack_trace() -> StackTrace {
     }
 
     // A null or out-of-stack ebp marks the outermost frame
-    while (stack_bottom..stack_top).contains(&ebp.addr()) {
-        // The return address is stored right above ebp
-        let return_address = unsafe { *ebp.add(1) };
+    loop {
+        let is_interrupt_frame = ebp.addr() == interrupt_ebp;
+        let required_bytes = core::mem::size_of::<u32>() * if is_interrupt_frame { 3 } else { 2 };
+
+        if
+            // Ensure ebp points to a valid location on the stack
+            ebp.addr() < stack_bottom ||
+            !ebp.is_aligned() ||
+            ebp.addr() > stack_top - required_bytes
+        {
+            break;
+        }
+
+        // The return address is stored at [ebp+4].
+        // Unless we come from an interrupt, then it is at [ebp+8]
+        let return_address_offset = if is_interrupt_frame { 2 } else { 1 };
+        let return_address = unsafe { *ebp.add(return_address_offset) };
         if return_address == 0 {
             break;
         }
 
-        let Ok(()) = stack.push_back(Address::from(return_address)) else { break; };
+        // Normally the return address is stored, this is the instruction *after* the calling one.
+        // For interrupt frames, the faulty instruction itself is stored.
+        let calling_eip_offset: i32 = if is_interrupt_frame { 0 } else { -1 };
+        let calling_eip = Address::from(return_address.strict_add_signed(calling_eip_offset));
+
+        let Ok(()) = stack.push_back(calling_eip) else { break; };
 
         // The caller's ebp is saved at the address ebp points to
         ebp = unsafe { *ebp } as *const u32;
@@ -63,7 +92,7 @@ fn panic(info: &PanicInfo) -> ! {
     #[expect(clippy::option_if_let_else)]
     let args = if let Some(location) = info.location() {
         format_args!(
-            "Panic! at {} line {}:{}\n{}\n\nStack trace: {}",
+            "Panic! at {} line {}:{}\n{}\n\n{}",
             location.file(),
             location.line(),
             location.column(),

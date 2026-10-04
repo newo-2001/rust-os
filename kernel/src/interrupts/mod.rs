@@ -7,8 +7,8 @@ mod pagefault;
 
 pub use pagefault::page_fault_handler;
 
-pub type RegularInterruptHandler = extern "x86-interrupt" fn(&InterruptStackFrame);
-pub type ErrorCodeInterruptHandler = extern "x86-interrupt" fn(&InterruptStackFrame, u32);
+pub type RegularInterruptHandler = extern "x86-interrupt" fn(InterruptStackFrame);
+pub type ErrorCodeInterruptHandler = extern "x86-interrupt" fn(InterruptStackFrame, u32);
 
 pub trait InterruptHandler {
     fn address(self) -> u32;
@@ -26,17 +26,19 @@ impl InterruptHandler for ErrorCodeInterruptHandler {
     }
 }
 
-pub extern "x86-interrupt" fn keyboard_interrupt_handler(_frame: &InterruptStackFrame) {
+pub extern "x86-interrupt" fn keyboard_interrupt_handler(_frame: InterruptStackFrame) {
     keyboard::KEYBOARD.on_data();
 
     unsafe { MASTER_COMMAND_PORT.out_byte(END_OF_INTERRUPT) }
 }
 
-pub extern "x86-interrupt" fn double_fault_handler(_frame: &InterruptStackFrame) {
+pub extern "x86-interrupt" fn double_fault_handler(_frame: InterruptStackFrame) {
     panic!("Double fault!");
 }
 
 #[repr(C)]
 pub struct InterruptStackFrame {
-    _private: (),
+    pub instruction_pointer: u32,
+    pub code_segment: u32,
+    pub cpu_flags: u32,
 }

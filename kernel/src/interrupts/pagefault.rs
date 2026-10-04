@@ -2,7 +2,7 @@ use core::arch::asm;
 
 use num_enum::TryFromPrimitive;
 
-use crate::{interrupts::InterruptStackFrame, mem::Address};
+use crate::{interrupts::InterruptStackFrame, mem::Address, panic};
 
 #[derive(Clone, Copy)]
 struct PageFaultErrorCode {
@@ -43,13 +43,14 @@ impl PageFaultErrorCode {
 
         Self {
             address: Address::from(cr2 & (!((1 << 12) - 1))),
-            reason: PageFaultReason::try_from(flags & (1 << 0)).unwrap(),
-            access: PageFaultAccess::try_from(flags & (1 << 1)).unwrap(),
+            reason: PageFaultReason::try_from(flags & 1).unwrap(),
+            access: PageFaultAccess::try_from((flags >> 1) & 1).unwrap(),
         }
     }
 }
 
-pub extern "x86-interrupt" fn page_fault_handler(_frame: &InterruptStackFrame, error_code: u32) {
+pub extern "x86-interrupt" fn page_fault_handler(frame: InterruptStackFrame, error_code: u32) {
+    panic::record_interrupt_frame(&frame);
     let error = PageFaultErrorCode::new(error_code);
 
     let access = match error.access {
@@ -63,7 +64,8 @@ pub extern "x86-interrupt" fn page_fault_handler(_frame: &InterruptStackFrame, e
     };
 
     panic!(
-        "Page fault occurred: {reason} during {access} at {:p}",
-        error.address
+        "Page fault occurred: {reason} during {access} at {:p}\nFaulting EIP: {:p}",
+        error.address,
+        Address::from(frame.instruction_pointer)
     )
 }

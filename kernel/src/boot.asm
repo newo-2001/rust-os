@@ -81,11 +81,11 @@ _start:
     mov cr0, ebx
 
     # With paging enabled we can now jump to our higher half copy
-    lea ecx, [1f]
-    add ecx, KERNEL_VIRTUAL_START
+    mov ecx, OFFSET higher_half_entry
     jmp ecx
-1:
 
+.section .text, "ax"
+higher_half_entry:
     # We can now disable the lower page directory entry
     mov DWORD PTR [eax], 0
 
