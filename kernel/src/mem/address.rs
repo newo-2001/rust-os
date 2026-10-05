@@ -1,6 +1,6 @@
 use core::fmt::{Display, Pointer};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct Address(usize);
 
@@ -11,8 +11,9 @@ impl From<u32> for Address {
 }
 
 impl From<Address> for u32 {
+    #[allow(clippy::cast_possible_truncation)]
     fn from(value: Address) -> Self {
-        value.0 as u32
+        value.0 as Self
     }
 }
 

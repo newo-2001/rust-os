@@ -43,6 +43,11 @@ _start:
     .set KERNEL_PHYSICAL_START, 0x00100000
     .set KERNEL_VIRTUAL_START, 0xc0000000
 
+    # Save the multiboot_info struct in edx.
+    # It needs to be adjusted for the fact that it references physical memory
+    mov edx, ebx
+    add edx, KERNEL_VIRTUAL_START
+
     .extern PAGE_DIRECTORY
     .extern KERNEL_PAGE_TABLE
 
@@ -94,6 +99,7 @@ higher_half_entry:
     xor ebp, ebp
 
     # Call Rust
+    push edx
     mov ecx, OFFSET kernel_main
     call ecx
 

@@ -1,21 +1,22 @@
 #![no_std]
 #![no_main]
-#![feature(const_trait_impl, const_convert, abi_x86_interrupt, exact_div)]
+#![feature(const_trait_impl, const_convert, abi_x86_interrupt, exact_div, integer_casts)]
 
-use core::panic::PanicInfo;
 use core::{arch::{asm, global_asm}, fmt::Write};
 
 global_asm!(include_str!("boot.asm"));
 
-use log::{info, trace};
+use log::{debug, info, trace};
 
-use crate::devices::keyboard::{KeyAction, KeyCode, KeyEvent};
+use crate::{devices::keyboard::{KeyAction, KeyCode, KeyEvent}, multiboot::MultibootInfo};
+use crate::multiboot::RawMultiBootInfo;
 use crate::{
     devices::pic,
     devices::vga::{VgaColor, VgaTextColor},
     term::Terminal,
 };
 
+mod multiboot;
 mod devices;
 mod gdt;
 mod idt;
@@ -26,9 +27,9 @@ mod mem;
 mod panic;
 mod term;
 
-#[expect(clippy::missing_panics_doc)]
+#[expect(clippy::missing_panics_doc, clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
-pub extern "C" fn kernel_main() -> ! {
+pub unsafe extern "cdecl" fn kernel_main(multiboot_info: *const RawMultiBootInfo) -> ! {
     {
         let mut com1 = devices::serial::COM1.lock();
         com1.initialize();
@@ -56,6 +57,9 @@ pub extern "C" fn kernel_main() -> ! {
         asm!("sti");
     }
     trace!("Interrupts enabled");
+
+    let multiboot_info = unsafe { multiboot_info.as_ref() }.unwrap();
+    let multiboot_info = MultibootInfo::try_from(multiboot_info).unwrap();
 
     term.cursor_color = VgaTextColor::new(VgaColor::LightGreen, VgaColor::Black);
 

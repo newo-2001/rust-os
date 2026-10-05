@@ -2,9 +2,16 @@ use core::{fmt::Display, mem::MaybeUninit, ops::{Index, IndexMut}};
 
 use crate::datastructures::BufferFullError;
 
+#[derive(Debug)]
 pub struct Stack<T, const N: usize> {
     items: [MaybeUninit<T>; N],
     length: usize
+}
+
+impl<T: Copy, const N: usize> Clone for Stack<T, N> {
+    fn clone(&self) -> Self {
+        Self { items: self.items, length: self.length }
+    }
 }
 
 impl<T, const N: usize> Stack<T, N> {
