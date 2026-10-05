@@ -22,12 +22,12 @@ multiboot_header_end:
 .section .bss,"aw",@nobits
 .align 16
 
-.global STACK_BOTTOM
-STACK_BOTTOM:
+.global __STACK_BOTTOM
+__STACK_BOTTOM:
     .skip 16384
 
-.global STACK_TOP
-STACK_TOP:
+.global __STACK_TOP
+__STACK_TOP:
 
 .section .boot.text,"ax"
 .global _start
@@ -95,7 +95,7 @@ higher_half_entry:
     mov DWORD PTR [eax], 0
 
     # Initialize the stack
-    mov esp, OFFSET STACK_TOP
+    mov esp, OFFSET __STACK_TOP
     xor ebp, ebp
 
     # Call Rust

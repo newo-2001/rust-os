@@ -10,8 +10,8 @@ use crate::mem::Address;
 use crate::{devices::vga::{VgaColor, VgaTextColor}, term::Terminal};
 
 unsafe extern "C" {
-    static STACK_BOTTOM: u8;
-    static STACK_TOP: u8;
+    static __STACK_BOTTOM: u8;
+    static __STACK_TOP: u8;
 }
 
 static INTERRUPT_EBP: AtomicUsize = AtomicUsize::new(0);
@@ -36,8 +36,8 @@ impl Display for StackTrace {
 
 fn stack_trace() -> StackTrace {
     let mut stack = Stack::new();
-    let stack_bottom = (&raw const STACK_BOTTOM).addr();
-    let stack_top = (&raw const STACK_TOP).addr();
+    let stack_bottom = (&raw const __STACK_BOTTOM).addr();
+    let stack_top = (&raw const __STACK_TOP).addr();
     let interrupt_ebp = INTERRUPT_EBP.load(Ordering::Relaxed);
 
     let mut ebp = core::ptr::null::<u32>();

@@ -19,6 +19,7 @@ num_enum = { version = "0.7.6", default-features = false }
 libkernel = { path = "../libkernel" }
 log = "0.4.34"
 thiserror = { version = "2.0.21", default-features = false }
+itertools = { version = "0.15.0", default-features = false }
 
 [lints]
 workspace = true

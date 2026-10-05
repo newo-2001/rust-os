@@ -75,11 +75,11 @@ impl<T, const N: usize> Stack<T, N> {
         unsafe { slice.assume_init_mut() }
     }
 
-    fn iter(&self) -> core::slice::Iter<'_, T> {
+    pub fn iter(&self) -> core::slice::Iter<'_, T> {
         self.as_slice().iter()
     }
 
-    fn iter_mut(&mut self) -> core::slice::IterMut<'_, T> {
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, T> {
         self.as_mut_slice().iter_mut()
     }
 }

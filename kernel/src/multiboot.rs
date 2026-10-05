@@ -5,7 +5,7 @@ use log::warn;
 use num_enum::{TryFromPrimitive, TryFromPrimitiveError};
 use thiserror::Error;
 
-use crate::mem::Address;
+use crate::mem::{Address, PhysicalAddress};
 
 #[derive(Debug, Clone, Copy, Error)]
 pub enum MultibootError {
@@ -23,17 +23,17 @@ pub enum MemoryMapEntryError {
 
 #[derive(Debug, Clone)]
 pub struct MultibootInfo {
-    memory_map: MemoryMap
+    pub memory_map: MemoryMap
 }
 
 #[derive(Debug, Clone)]
-pub struct MemoryMap(Stack<MemoryMapEntry, 32>);
+pub struct MemoryMap(pub Stack<MemoryMapEntry, 32>);
 
 #[derive(Debug, Clone, Copy)]
 pub struct MemoryMapEntry {
-    address: Address,
-    length: usize,
-    memory_type: MemoryType
+    pub address: PhysicalAddress,
+    pub length: usize,
+    pub memory_type: MemoryType
 }
 
 #[derive(Clone, Copy)]
@@ -76,7 +76,7 @@ enum TagType {
     MemoryMap = 6,
 }
 
-#[derive(Debug, Clone, Copy, TryFromPrimitive)]
+#[derive(Debug, Clone, Copy, TryFromPrimitive, PartialEq, Eq)]
 #[repr(u32)]
 pub enum MemoryType {
     Available = 1,
@@ -173,7 +173,7 @@ impl TryFrom<RawMemoryMapEntry> for MemoryMapEntry {
             .map_err(|TryFromPrimitiveError { number }| MemoryMapEntryError::UnrecognizedMemoryType(number))?;
 
         Ok(Self {
-            address: Address::from(address),
+            address: PhysicalAddress::from(address),
             length,
             memory_type
         })

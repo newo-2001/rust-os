@@ -6,7 +6,7 @@ use core::{arch::{asm, global_asm}, fmt::Write};
 
 global_asm!(include_str!("boot.asm"));
 
-use log::{debug, info, trace};
+use log::{info, trace};
 
 use crate::{devices::keyboard::{KeyAction, KeyCode, KeyEvent}, multiboot::MultibootInfo};
 use crate::multiboot::RawMultiBootInfo;
@@ -52,14 +52,25 @@ pub unsafe extern "cdecl" fn kernel_main(multiboot_info: *const RawMultiBootInfo
     writeln!(term, "Master PIC mask: {master_mask:#010b}").unwrap();
     writeln!(term, "Slave PIC mask: {slave_mask:#010b}").unwrap();
 
+    let multiboot_info = unsafe { multiboot_info.as_ref() }.unwrap();
+    let multiboot_info = MultibootInfo::try_from(multiboot_info).unwrap();
+
+    {
+        let mut pmm = mem::PHYSICAL_MEMORY_MANAGER.lock();
+        pmm.load_memory_map(&multiboot_info.memory_map);
+    }
+
     // Enable interrupts
     unsafe {
         asm!("sti");
     }
     trace!("Interrupts enabled");
 
-    let multiboot_info = unsafe { multiboot_info.as_ref() }.unwrap();
-    let multiboot_info = MultibootInfo::try_from(multiboot_info).unwrap();
+    {
+        let mut pmm = mem::PHYSICAL_MEMORY_MANAGER.lock();
+        let my_pages = pmm.allocate(3).unwrap();
+        log::debug!("{my_pages:?}");
+    };
 
     term.cursor_color = VgaTextColor::new(VgaColor::LightGreen, VgaColor::Black);
 
