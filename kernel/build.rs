@@ -1,6 +1,11 @@
 use std::{env, fs, path::Path};
 
 fn main() {
+    let target = env::var("CARGO_CFG_TARGET_OS").unwrap();
+    if target != "none" {
+        return;
+    }
+
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_dir = Path::new(&out_dir);
     let linker_script = out_dir.join("linker.ld");

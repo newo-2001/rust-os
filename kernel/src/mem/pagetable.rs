@@ -35,7 +35,9 @@ pub struct PageDirectory {
 pub struct PageDirectoryEntry(u32);
 
 impl PageDirectoryEntry {
-    #[expect(unused)]
+    /// # Panics
+    /// Panics if `physical_base_address` is not aligned to 4K
+    #[must_use]
     pub const fn new(
         physical_base_address: u32,
         access_mode: AccessMode,
@@ -71,6 +73,9 @@ pub struct PageTable {
 pub struct PageTableEntry(u32);
 
 impl PageTableEntry {
+    /// # Panics
+    /// Panics if `base_address` is not aligned to 4K
+    #[must_use]
     pub const fn new(
         base_address: u32,
         access_mode: AccessMode,
@@ -94,7 +99,6 @@ impl PageTableEntry {
 
 #[derive(Clone, Copy)]
 pub enum AccessMode {
-    #[expect(unused)]
     ReadOnly = 0,
     ReadWrite = 1,
 }
@@ -102,7 +106,6 @@ pub enum AccessMode {
 #[derive(Clone, Copy)]
 pub enum PrivilegeLevel {
     Supervisor = 0,
-    #[expect(unused)]
     User = 1,
 }
 

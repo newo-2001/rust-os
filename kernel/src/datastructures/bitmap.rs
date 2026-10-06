@@ -2,8 +2,8 @@ use core::{marker::PhantomData, ops::{BitAndAssign, BitOrAssign}};
 
 use num_traits::PrimInt;
 
-pub struct BitMap<T, const WORDS: usize> {
-    data: [T; WORDS]
+pub struct BitMap<const N: usize, T> {
+    data: [T; N]
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -32,14 +32,14 @@ impl<T: PrimInt> BitMapIndex<T> {
     }
 }
 
-impl<T, const N: usize> BitMap<T, N> {
+impl<T, const N: usize> BitMap<N, T> {
     pub const fn from_data(data: [T; N]) -> Self {
         Self { data }
     }
 }
 
 #[expect(clippy::missing_panics_doc)]
-impl<T: PrimInt, const N: usize> BitMap<T, N> {
+impl<T: PrimInt, const N: usize> BitMap<N, T> {
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -84,7 +84,7 @@ impl<T: PrimInt, const N: usize> BitMap<T, N> {
         self.data[index.word_index] &= !(T::one() << index.bit_index);
     }
 
-    pub fn iter(&self) -> BitMapIterator<'_, T, N> {
+    pub fn iter(&self) -> BitMapIterator<'_, N, T> {
         self.into_iter()
     }
 
@@ -95,18 +95,18 @@ impl<T: PrimInt, const N: usize> BitMap<T, N> {
     }
 }
 
-impl<T: PrimInt, const N: usize> Default for BitMap<T, N> {
+impl<T: PrimInt, const N: usize> Default for BitMap<N, T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-pub struct BitMapIterator<'a, T, const N: usize> {
+pub struct BitMapIterator<'a, const N: usize, T> {
     index: BitMapIndex<T>,
-    bitmap: &'a BitMap<T, N>
+    bitmap: &'a BitMap<N, T>
 }
 
-impl<T: PrimInt, const N: usize> Iterator for BitMapIterator<'_, T, N> {
+impl<T: PrimInt, const N: usize> Iterator for BitMapIterator<'_, N, T> {
     type Item = bool;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -128,9 +128,9 @@ impl<T: PrimInt, const N: usize> Iterator for BitMapIterator<'_, T, N> {
     }
 }
 
-impl<'a, T: PrimInt, const N: usize> IntoIterator for &'a BitMap<T, N> {
+impl<'a, T: PrimInt, const N: usize> IntoIterator for &'a BitMap<N, T> {
     type Item = bool;
-    type IntoIter = BitMapIterator<'a, T, N>;
+    type IntoIter = BitMapIterator<'a, N, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         BitMapIterator {

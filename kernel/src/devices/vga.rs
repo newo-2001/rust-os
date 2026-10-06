@@ -1,4 +1,4 @@
-use libkernel::sync::SpinLock;
+use kernel::sync::SpinLock;
 use num_enum::TryFromPrimitive;
 
 pub const BUFFER_WIDTH: u8 = 80;

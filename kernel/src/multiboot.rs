@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-use libkernel::datastructures::Stack;
+use crate::datastructures::Stack;
 use log::warn;
 use num_enum::{TryFromPrimitive, TryFromPrimitiveError};
 use thiserror::Error;

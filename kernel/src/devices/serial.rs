@@ -1,6 +1,6 @@
 use core::fmt::Write;
 
-use libkernel::sync::SpinLock;
+use kernel::sync::SpinLock;
 use num_enum::TryFromPrimitive;
 
 use crate::io::{self, IoPort};

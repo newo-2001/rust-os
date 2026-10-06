@@ -2,7 +2,8 @@ use core::arch::asm;
 
 use num_enum::TryFromPrimitive;
 
-use crate::{interrupts::InterruptStackFrame, mem::Address, panic};
+use crate::{interrupts::InterruptStackFrame, panic};
+use kernel::mem::Address;
 
 #[derive(Clone, Copy)]
 struct PageFaultErrorCode {

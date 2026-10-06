@@ -1,6 +1,6 @@
 #![no_std]
 #![no_main]
-#![feature(const_trait_impl, const_convert, abi_x86_interrupt, exact_div, integer_casts)]
+#![feature(const_trait_impl, const_convert, abi_x86_interrupt, exact_div)]
 
 use core::{arch::{asm, global_asm}, fmt::Write};
 
@@ -8,22 +8,20 @@ global_asm!(include_str!("boot.asm"));
 
 use log::{info, trace};
 
-use crate::{devices::keyboard::{KeyAction, KeyCode, KeyEvent}, multiboot::MultibootInfo};
-use crate::multiboot::RawMultiBootInfo;
+use kernel::multiboot::{RawMultiBootInfo, MultibootInfo};
+use crate::devices::keyboard::{KeyAction, KeyCode, KeyEvent};
 use crate::{
     devices::pic,
     devices::vga::{VgaColor, VgaTextColor},
     term::Terminal,
 };
 
-mod multiboot;
 mod devices;
 mod gdt;
 mod idt;
 mod interrupts;
 mod io;
 mod logger;
-mod mem;
 mod panic;
 mod term;
 
@@ -56,7 +54,7 @@ pub unsafe extern "cdecl" fn kernel_main(multiboot_info: *const RawMultiBootInfo
     let multiboot_info = MultibootInfo::try_from(multiboot_info).unwrap();
 
     {
-        let mut pmm = mem::PHYSICAL_MEMORY_MANAGER.lock();
+        let mut pmm = kernel::mem::PHYSICAL_MEMORY_MANAGER.lock();
         pmm.load_memory_map(&multiboot_info.memory_map);
     }
 
@@ -67,7 +65,7 @@ pub unsafe extern "cdecl" fn kernel_main(multiboot_info: *const RawMultiBootInfo
     trace!("Interrupts enabled");
 
     {
-        let mut pmm = mem::PHYSICAL_MEMORY_MANAGER.lock();
+        let mut pmm = kernel::mem::PHYSICAL_MEMORY_MANAGER.lock();
         let my_pages = pmm.allocate(3).unwrap();
         log::debug!("{my_pages:?}");
     };

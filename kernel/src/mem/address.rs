@@ -15,6 +15,9 @@ macro_rules! address_type {
                 Some(Self::from(usize::from(self.0).checked_add(offset)?))
             }
 
+            /// # Safety
+            /// `self + offset <= usize::MAX`
+            #[must_use]
             pub unsafe fn add_offset_unchecked(self, offset: usize) -> $type {
                 let base = usize::from(self.0);
                 Self::from(unsafe { base.unchecked_add(offset) })

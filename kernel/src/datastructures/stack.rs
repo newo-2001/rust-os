@@ -165,8 +165,8 @@ mod tests {
     #[test]
     fn push_back_pushes_elements() {
         let mut stack = Stack::<u32, 2>::new();
-        stack.push_back(0);
-        stack.push_back(1);
+        stack.push_back(0).unwrap();
+        stack.push_back(1).unwrap();
 
         assert_eq!(0, stack[0]);
         assert_eq!(1, stack[1]);
@@ -177,7 +177,7 @@ mod tests {
     fn push_back_fails_on_full_stack() {
         let mut stack = Stack::<u32, 1>::new();
 
-        stack.push_back(0);
+        stack.push_back(0).unwrap();
         assert_eq!(Err(BufferFullError(1)), stack.push_back(1));
         assert!(stack.is_full());
     }
@@ -212,8 +212,8 @@ mod tests {
     fn pop_after_push_identity() {
         let mut stack = Stack::<u32, 2>::new();
 
-        stack.push_back(0);
-        stack.push_back(1);
+        stack.push_back(0).unwrap();
+        stack.push_back(1).unwrap();
         assert_eq!(Some(1), stack.pop_back());
         assert_eq!(1, stack.len());
     }
@@ -221,8 +221,8 @@ mod tests {
     #[test]
     fn as_slice() {
         let mut stack = Stack::<u32, 3>::new();
-        stack.push_back(0);
-        stack.push_back(1);
+        stack.push_back(0).unwrap();
+        stack.push_back(1).unwrap();
 
         assert_eq!(&[0, 1], stack.as_slice());
     }

@@ -28,17 +28,9 @@ name = "kernel"
 version = "0.1.0"
 dependencies = [
  "itertools",
- "libkernel",
  "log",
- "num_enum",
- "thiserror",
-]
-
-[[package]]
-name = "libkernel"
-version = "0.1.0"
-dependencies = [
  "num-traits",
+ "num_enum",
  "thiserror",
 ]
 

@@ -1,4 +1,4 @@
-use libkernel::{datastructures::SpscQueue, sync::SpinLock};
+use kernel::{datastructures::SpscQueue, sync::SpinLock};
 use log::warn;
 
 use crate::io::IoPort;

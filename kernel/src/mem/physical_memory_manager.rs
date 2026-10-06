@@ -1,7 +1,5 @@
 use itertools::{FoldWhile, Itertools};
-use libkernel::{datastructures::{BitMap, BitMapIndex}, sync::SpinLock};
-
-use crate::{mem::PhysicalAddress, multiboot::{MemoryMap, MemoryType}};
+use crate::{datastructures::{BitMap, BitMapIndex}, mem::PhysicalAddress, multiboot::{MemoryMap, MemoryType}, sync::SpinLock};
 
 unsafe extern "C" {
     static __KERNEL_PHYSICAL_END: u8;
@@ -25,7 +23,7 @@ const BITMAP_WORD_BITS: usize = BitMapWordType::BITS as usize;
 const BITMAP_WORD_COUNT: usize = PAGE_FRAME_COUNT.div_ceil(BITMAP_WORD_BITS);
 
 pub struct PhysicalMemoryManager {
-    page_frame_map: BitMap<BitMapWordType, BITMAP_WORD_COUNT>
+    page_frame_map: BitMap<BITMAP_WORD_COUNT, BitMapWordType>
 }
 
 pub static PHYSICAL_MEMORY_MANAGER: SpinLock<PhysicalMemoryManager> = SpinLock::new(

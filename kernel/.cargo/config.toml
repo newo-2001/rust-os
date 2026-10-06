@@ -1,9 +1,0 @@
-[build]
-target = "i686-unknown-none.json"
-
-[target.i686-unknown-none]
-runner = "./run.sh"
-
-[unstable]
-json-target-spec = true
-build-std = ["core", "compiler_builtins"]

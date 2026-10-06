@@ -2,12 +2,10 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use core::{arch::asm, panic::PanicInfo};
 use core::fmt::{Display, Write};
 
-use libkernel::datastructures::Stack;
 use log::error;
 
-use crate::interrupts::InterruptStackFrame;
-use crate::mem::Address;
-use crate::{devices::vga::{VgaColor, VgaTextColor}, term::Terminal};
+use crate::{devices::vga::{VgaColor, VgaTextColor}, interrupts::InterruptStackFrame, term::Terminal};
+use kernel::{mem::Address, datastructures::Stack};
 
 unsafe extern "C" {
     static __STACK_BOTTOM: u8;
