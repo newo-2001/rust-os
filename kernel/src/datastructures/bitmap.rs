@@ -6,7 +6,7 @@ pub struct BitMap<const N: usize, T> {
     data: [T; N]
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BitMapIndex<T> {
     word_index: usize,
     bit_index: usize,
@@ -29,6 +29,12 @@ impl<T: PrimInt> BitMapIndex<T> {
     pub const fn index(self) -> usize {
         let word_size_bits = core::mem::size_of::<T>();
         self.word_index * word_size_bits + self.bit_index
+    }
+}
+
+impl<T: PrimInt> From<usize> for BitMapIndex<T> {
+    fn from(value: usize) -> Self {
+        Self::new(value)
     }
 }
 
@@ -137,5 +143,84 @@ impl<'a, T: PrimInt, const N: usize> IntoIterator for &'a BitMap<N, T> {
             bitmap: self,
             index: BitMapIndex::new(0)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use itertools::Itertools;
+
+    use super::*;
+
+    #[test]
+    fn set_bit_sets_corresponding_bit() {
+        let mut map = BitMap::<2, u32>::new();
+        map.set_bit(BitMapIndex::new(35));
+        assert_eq!([0, (1 << 3)], map.data);
+    }   
+        
+    #[test]
+    fn clear_bit_clears_corresponding_bit() {
+        let mut map = BitMap::<2, u8>::from_data([0xff; 2]);
+        map.clear_bit(BitMapIndex::new(12));
+        assert_eq!([0xff, !(1 << 4)], map.data);
+    }
+
+    #[test]
+    fn write_bit_true_sets_bit() {
+        const BYTE: u8 = 0b10101010;
+        let mut map = BitMap::<2, u8>::from_data([BYTE; 2]);
+        map.write_bit(BitMapIndex::new(10), true);
+        assert_eq!([BYTE, 0b10101110], map.data);
+    }
+
+    #[test]
+    fn write_bit_false_clears_bit() {
+        const BYTE: u8 = 0b10101010;
+        let mut map = BitMap::<2, u8>::from_data([BYTE; 2]);
+        map.write_bit(BitMapIndex::new(9), false);
+        assert_eq!([BYTE, 0b10101000], map.data);
+    }
+
+    #[test]
+    fn index_in_range_returns_bit_at_index() {
+        let map = BitMap::<2, u8>::from_data([0, 0b00100000]);
+        let index = BitMapIndex::new(13);
+
+        assert!(map.index(index));
+        assert_eq!(Some(true), map.get(index));
+    }
+
+    #[test]
+    fn get_out_of_range_returns_none() {
+        let map = BitMap::<1, u8>::new();
+        assert_eq!(None, map.get(BitMapIndex::new(8)));
+    }
+
+    #[test]
+    fn iter_iterates_all_bits() {
+        let map = BitMap::<2, u8>::from_data([0b10100111, 0b10001110]);
+        let bits = map.iter().collect_array::<16>().unwrap();
+        assert_eq!([
+            true, true, true, false, false, true, false, true,
+            false, true, true, true, false, false, false, true
+        ], bits);
+    }
+
+    #[test]
+    fn enumerate_enumerates_all_bits() {
+        let map = BitMap::<2, u8>::from_data([0b11101001, 0b00100101]);
+        let bits = map.enumerate().collect_array::<16>().unwrap();
+
+        let expected = (0..16).map(|index| BitMapIndex {
+            word_index: index / 8,
+            bit_index: index % 8,
+            _word_type: PhantomData::<u8>
+        }).zip([
+            true, false, false, true, false, true, true, true,
+            true, false, true, false, false, true, false, false
+        ]).collect_array::<16>().unwrap();
+
+        assert_eq!(expected, bits)
     }
 }
